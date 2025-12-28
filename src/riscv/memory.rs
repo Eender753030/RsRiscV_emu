@@ -15,6 +15,10 @@ impl Memory {
     }
     
     pub fn read(&self, pc: u32) -> Result<u32, RiscVError> {
+        if pc % 4 != 0 {
+            return Err(RiscVError::InstructionAddressMisaligned(pc));
+        }
+
         let idx = pc as usize;
 
         if idx >= self.size - 3  {
@@ -33,6 +37,10 @@ impl Memory {
     } 
 
     pub fn write(&mut self, pc: u32, data: u32) -> Result<(), RiscVError> {
+        if pc % 4 != 0 {
+            return Err(RiscVError::InstructionAddressMisaligned(pc));
+        }
+        
         let idx = pc as usize;
 
         if idx >= self.size - 3 {
