@@ -31,21 +31,24 @@ impl RiscV {
     }
 
     fn fetch(&self) -> Result<u32, RiscVError> {
-        self.memory.read(self.pc.get() as usize)
+        self.memory.read(self.pc.get())
     }
 
     fn decode(&self, instruction: u32) -> Result<Types, RiscVError>{
         match instruction & 0x7f {
             0x13 => {
-                if instruction & 0x7000 == 0 {
-                   return Ok(opcode::Types::parse(TypeKind::IType, instruction, opcode::Action::ADDI));
-                } else {
-                    Err(RiscVError::InvalidRegister(0))
+                match instruction & 0x7000 {
+                    0x0 => {
+                        Ok(opcode::Types::parse(TypeKind::IType, instruction, opcode::Action::ADDI))
+                    }
+                    not_exist_func => {
+                        Err(RiscVError::NotImplementedFunc(0x13, not_exist_func))
+                    }
                 }
             }
 
-            _ => {
-                Err(RiscVError::InvalidRegister(0))
+            not_exist_opcode => {
+                Err(RiscVError::NotImplementedOpCode(not_exist_opcode))
             }
         }
     }
@@ -66,7 +69,7 @@ impl RiscV {
     }
 
     pub fn load_code(&mut self, code: u32) -> Result<(), RiscVError>{
-        self.memory.write(0, code)
+        self.memory.write(self.pc.get(), code)
     }
 
     pub fn print_registers(&self) {
