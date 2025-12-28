@@ -2,6 +2,7 @@ mod register;
 mod pc;
 mod memory;
 mod opcode;
+pub mod loader;
 
 use register::Registers;
 use pc::PC;
@@ -70,8 +71,8 @@ impl RiscV {
         Ok(())
     }
 
-    pub fn load_code(&mut self, code: u32) -> Result<(), RiscVError>{ 
-        self.memory.write(self.pc.get(), code)
+    pub fn load_code(&mut self, code: Vec<u8>) -> Result<(), RiscVError>{ 
+        self.memory.load(0, code)
     }
 
     pub fn print(&self) {

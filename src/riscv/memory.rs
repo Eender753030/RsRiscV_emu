@@ -56,4 +56,17 @@ impl Memory {
         Ok(())
     } 
 
+    pub fn load(&mut self, start_idx:usize, data_container: Vec<u8>) -> Result<(), RiscVError> {
+        for (i, &data) in data_container.iter().enumerate() {
+            let idx = start_idx + i;
+            if idx > self.size {
+                return Err(RiscVError::OutOfBoundMemory);
+            }
+            
+            self.space[start_idx + i] = data;
+        }
+  
+        Ok(())
+    } 
+
 }
