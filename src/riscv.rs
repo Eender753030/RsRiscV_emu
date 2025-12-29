@@ -22,7 +22,7 @@ impl RiscV {
     pub fn new() -> Self {
         RiscV {
             registers: Registers::new(),
-              pc: PC::new(),
+            pc: PC::new(),
             ins_memory: Memory::new(128),
             data_memory: Memory::new(512),
         }
@@ -56,9 +56,9 @@ impl RiscV {
             0x23 => Ok(Instruction::parse(InstructionKind::Stype, instruction)),
 
             0x33 => Ok(Instruction::parse(InstructionKind::Rtype, instruction)),
-            
+
             not_exist_opcode => Err(RiscVError::NotImplementedOpCode(not_exist_opcode))
-                    }
+        }
     }
 
     fn execute(&mut self, op_type: Instruction) -> Result<(), RiscVError> {
@@ -67,7 +67,7 @@ impl RiscV {
                 self.registers.write(
                     rd, 
                     match funct3 {
-                    // ADDI
+                        // ADDI
                         0x0 => self.registers.read(rs1)?.wrapping_add_signed(imm),               
                         // SLLI
                         0x1 => self.registers.read(rs1)? << ((imm & 0x1f) as u32),
@@ -133,7 +133,7 @@ impl RiscV {
                     rd,
                     match funct3 {
                         // ADD | SUB
-                    0x0 => { 
+                        0x0 => {             
                             match funct7 {
                                 // ADD
                                 0x00 => self.registers.read(rs1)?.wrapping_add(self.registers.read(rs2)?),
