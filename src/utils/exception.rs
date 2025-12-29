@@ -15,5 +15,5 @@ pub enum RiscVError {
     NotImplementedOpCode(u32),
 
     #[error("OpCode: Not implemented func 0x{0:x} from: 0x{1:x}")]
-    NotImplementedFunc(u32, u16),
+    NotImplementedFunc(u32, u8),
 }
