@@ -61,11 +61,52 @@ impl RiscV {
                     }
     }
 
-    fn execute(&mut self, op_type: Types) -> Result<(), RiscVError> {
+    fn execute(&mut self, op_type: Instruction) -> Result<(), RiscVError> {
         match op_type {
-            Types::IType {imm, rs1, rd, func} => {
-                match func {
+            Instruction::Itype {rd, rs1, imm, funct3} => {
+                self.registers.write(
+                    rd, 
+                    match funct3 {
                     // ADDI
+                        0x0 => self.registers.read(rs1)?.wrapping_add_signed(imm),               
+                        // SLLI
+                        0x1 => self.registers.read(rs1)? << ((imm & 0x1f) as u32),
+                        // SLTI
+                        0x2 => {
+                            match (self.registers.read(rs1)? as i32) < imm {
+                                true => 1,
+                                false => 0
+                            }
+                        },
+                        // SLTIU
+                        0x3 => {
+                            match self.registers.read(rs1)? < (imm as u32) {
+                                true => 1,
+                                false => 0
+                            }
+                        },
+                        // XORI
+                        0x4 => self.registers.read(rs1)? ^ (imm as u32),    
+                        // SRLI | SRAI
+                        0x5 => {
+                            match (imm & 0xfe0) >> 5 {
+                                // SRLI
+                                0x00 => self.registers.read(rs1)? >> ((imm & 0x1f) as u32),
+                                // SRAI
+                                0x20 => ((self.registers.read(rs1)? as i32) >> (imm & 0x1f)) as u32,
+                            
+                                not_exist_funct => return Err(RiscVError::NotImplementedFunc(0x13, not_exist_funct as u8))
+                            }
+                        },
+                        // ORI
+                        0x6 => self.registers.read(rs1)? | (imm as u32),
+                        // ANDI
+                        0x7 => self.registers.read(rs1)? & (imm as u32),
+
+                        not_exist_funct => return Err(RiscVError::NotImplementedFunc(0x13, not_exist_funct))
+                    }
+                )?;
+            },
 
             Instruction::ItypeLoad {rd, rs1, imm, funct3} => {
                 self.registers.write(
