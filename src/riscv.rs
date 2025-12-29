@@ -87,13 +87,18 @@ impl RiscV {
                 )?;      
             },
                     0x0 => { 
-                        self.registers.write(rd, self.registers.read(rs1)?.wrapping_add(imm as u32))?; 
-                    },
 
-                    not_exist_func => {
-                        return Err(RiscVError::NotImplementedFunc(0x13, not_exist_func))
+            Instruction::Stype {rs1, rs2, imm, funct3} => {
+                self.data_memory.write(
+                    self.registers.read(rs1)?.wrapping_add_signed(imm), 
+                    self.registers.read(rs2)?, 
+                    match funct3 {
+                        0x0 => 0, // SB
+                        0x1 => 1, // SH
+                        0x2 => 3, // SW
+                        not_exist_funct => return Err(RiscVError::NotImplementedFunc(0x23, not_exist_funct))
                     }
-                }
+                )?;
             }
         }
 
