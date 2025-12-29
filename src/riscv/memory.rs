@@ -16,7 +16,7 @@ impl Memory {
     }
     
     pub fn fetch(&self, pc: u32) -> Result<u32, RiscVError> {
-        if pc % 4 != 0 {
+        if !pc.is_multiple_of(4) {
             return Err(RiscVError::InstructionAddressMisaligned(pc));
         }
 

@@ -19,17 +19,17 @@ pub struct RiscV {
 }
 
 impl RiscV {
-    pub fn new() -> Self {
+    pub fn new(memory_size: usize) -> Self {
         RiscV {
             registers: Registers::new(),
             pc: PC::new(),
-            ins_memory: Memory::new(128),
-            data_memory: Memory::new(512),
+            ins_memory: Memory::new(memory_size / 2),
+            data_memory: Memory::new(memory_size),
         }
     }
     
     pub fn cycle(&mut self, code: &[u8]) -> Result<(), RiscVError>{
-        self.ins_memory.load(0, code)?;
+        self.ins_memory.load(self.pc.get() as usize, code)?;
 
         loop {
             let instruction = self.fetch()?;
@@ -201,6 +201,12 @@ impl RiscV {
     }
 
     pub fn print(&self) {
-        println!("Registers {{ {:?} }}\n{:?}\n{:x?}", self.registers.dump_signed_vec(), self.pc, self.data_memory);
+        println!("Registers {{ {:?} }}\n{:?}\n{:?}", self.registers.dump_signed_vec(), self.pc, self.data_memory);
+    }
+}
+
+impl Default for RiscV {
+    fn default() -> Self {
+        Self::new(256)
     }
 }
