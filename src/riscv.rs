@@ -66,6 +66,26 @@ impl RiscV {
             Types::IType {imm, rs1, rd, func} => {
                 match func {
                     // ADDI
+
+            Instruction::ItypeLoad {rd, rs1, imm, funct3} => {
+                self.registers.write(
+                    rd,
+                    self.data_memory.read(
+                        self.registers.read(rs1)?.wrapping_add_signed(imm),
+                        match funct3 {
+                            0x0 | 0x4 => 0, // LB | LBU
+                            0x1 | 0x5 => 1, // LH | LHU
+                            0x2 => 3, // LW
+                            not_exist_funct => return Err(RiscVError::NotImplementedFunc(0x03, not_exist_funct))
+                        },
+                        match funct3 {
+                            0x0 | 0x1 | 0x2 => true, // LB | LH | LW
+                            0x4 | 0x5 => false, // LBU | LHU
+                            not_exist_funct => return Err(RiscVError::NotImplementedFunc(0x03, not_exist_funct))
+                        },
+                    )?
+                )?;      
+            },
                     0x0 => { 
                         self.registers.write(rd, self.registers.read(rs1)?.wrapping_add(imm as u32))?; 
                     },
