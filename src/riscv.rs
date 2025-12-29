@@ -1,13 +1,15 @@
 mod register;
 mod pc;
 mod memory;
-mod opcode;
+mod instruction;
 pub mod loader;
+
+use std::ops::Shr;
 
 use register::Registers;
 use pc::PC;
 use memory::Memory;
-use crate::{riscv::opcode::{TypeKind, Types}, utils::exception::RiscVError};
+use crate::{riscv::instruction::{Instruction, InstructionKind}, utils::exception::RiscVError};
 
 pub struct RiscV {
     registers: Registers,
@@ -45,16 +47,18 @@ impl RiscV {
         self.ins_memory.fetch(self.pc.get())
     }
 
-    fn decode(&self, instruction: u32) -> Result<Types, RiscVError>{
+    fn decode(&self, instruction: u32) -> Result<Instruction, RiscVError>{
         match instruction & 0x7f {
-            0x13 => {  
-                    Ok(opcode::Types::parse(TypeKind::IType, instruction, ((instruction & 0x7000) >> 12) as u16))           
-            },
+            0x03 => Ok(Instruction::parse(InstructionKind::ItypeLoad, instruction)),
             
-            not_exist_opcode => {
-                Err(RiscVError::NotImplementedOpCode(not_exist_opcode))
-            }
-        }
+            0x13 => Ok(Instruction::parse(InstructionKind::Itype, instruction)),
+            
+            0x23 => Ok(Instruction::parse(InstructionKind::Stype, instruction)),
+
+            0x33 => Ok(Instruction::parse(InstructionKind::Rtype, instruction)),
+            
+            not_exist_opcode => Err(RiscVError::NotImplementedOpCode(not_exist_opcode))
+                    }
     }
 
     fn execute(&mut self, op_type: Types) -> Result<(), RiscVError> {
@@ -78,6 +82,6 @@ impl RiscV {
     }
 
     pub fn print(&self) {
-        println!("{:?}\n{:?}", self.registers, self.pc);
+        println!("Registers {{ {:?} }}\n{:?}\n{:x?}", self.registers.dump_signed_vec(), self.pc, self.data_memory);
     }
 }

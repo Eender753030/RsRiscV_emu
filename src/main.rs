@@ -6,11 +6,7 @@ fn main() {
     
     match loader::read_binary("test") {
         Ok(code) => {
-            if let Err(e) = machine.load_code(code) {
-                eprintln!("Error: {}", e);
-            }
-
-            if let Err(e) = machine.cycle() {
+            if let Err(e) = machine.cycle(&code) {
                 eprintln!("Error: {}", e);
             }
 
