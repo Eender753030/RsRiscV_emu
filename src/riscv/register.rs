@@ -37,6 +37,10 @@ impl Registers {
         Ok(())
     }
 
+    pub fn reset(&mut self) {
+        self.registers.fill(0);
+    }
+
     pub fn dump_signed_vec(&self) -> Vec<i32> {
         self.registers.iter().map(|&x| x as i32).collect()
     } 

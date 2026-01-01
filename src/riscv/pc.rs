@@ -16,6 +16,10 @@ impl PC {
         self.pointer
     }
 
+    pub fn reset(&mut self) {
+        self.pointer = 0;
+    }
+
     pub fn related_addressing(&mut self, offset: i32) {
         self.pointer = self.pointer.wrapping_add_signed(offset << 1);
     }

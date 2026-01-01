@@ -11,7 +11,8 @@ impl Memory {
         if size < 4 {
             Memory{size: 4, space: vec![0; 4]}
         } else {
-            Memory{size, space: vec![0; size]}
+            let ture_size = size + (4 - size % 4); 
+            Memory{size: ture_size, space: vec![0; size]}
         }
     }
     
@@ -82,4 +83,12 @@ impl Memory {
         
         Ok(())
     } 
+
+    pub fn reset(&mut self) {
+        self.space.fill(0);
+    }
+
+    pub fn dump(&self) -> Vec<[u8; 4]> {
+        self.space.chunks(4).map(|slice| slice.try_into().unwrap()).collect()
+    }
 }
