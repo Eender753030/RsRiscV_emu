@@ -1,5 +1,4 @@
 #[derive(Debug)]
-
 pub enum InstructionKind {
     Itype,
     ItypeLoad,
@@ -85,7 +84,7 @@ impl Instruction {
                 Instruction::Btype { 
                     rs1: ((ins >> 15) & 0x1f) as usize, 
                     rs2: ((ins >> 20) & 0x1f) as usize, 
-                    imm: (((ins & 0x80000000) as i32) >> 19) | (((((ins & 0x80) << 4) | ((ins & 0x7e000000) >> 20) | ((ins & 0xf00) >> 7))) as i32), 
+                    imm: (((ins & 0x80000000) as i32) >> 19) | ((((ins & 0x80) << 4) | ((ins & 0x7e000000) >> 20) | ((ins & 0xf00) >> 7)) as i32), 
                     funct3: ((ins >> 12) & 0x7) as u8
                 }
             },

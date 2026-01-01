@@ -8,6 +8,9 @@ pub enum RiscVError {
     #[error("Memeory: Out of bound")]
     OutOfBoundMemory,
 
+    #[error("Memeory: Only can read 1 to 4 bytes")]
+    ReadInvalidByets,
+
     #[error("PC: PC value `{0}` not misaligned to byte")]
     InstructionAddressMisaligned(u32),
 
