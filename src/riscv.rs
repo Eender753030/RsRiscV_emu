@@ -3,6 +3,7 @@ mod pc;
 mod memory;
 mod instruction;
 pub mod loader;
+pub mod parser;
 
 use std::ops::Shr;
 
@@ -28,19 +29,31 @@ impl RiscV {
         }
     }
     
-    pub fn cycle(&mut self, code: &[u8]) -> Result<(), RiscVError>{
-        self.ins_memory.load(self.pc.get() as usize, code)?;
+    pub fn load(&mut self, code: &[u8]) -> Result<(), RiscVError> {
+        self.ins_memory.load(self.pc.get() as usize, code)
+    }
 
+    pub fn cycle(&mut self) -> Result<(), RiscVError>{
         loop {
-            let instruction = self.fetch()?;
-            if instruction == 0 {
-                break Ok(());
+            if let Err(e) = self.step() {
+                break match e {
+                    RiscVError::EndOfInstruction | RiscVError::SystemExit(_) => Ok(()),
+                    _ => Err(e)
+                }
             }
-            
-            let type_data = self.decode(instruction)?;
-            
-            self.execute(type_data)?;
         }
+    }
+
+    pub fn step(&mut self) -> Result<(), RiscVError>{   
+        let instruction = self.fetch()?;
+        if instruction == 0 {
+            return Err(RiscVError::EndOfInstruction);
+        }
+        
+        let type_data = self.decode(instruction)?;
+        
+        self.execute(type_data)?;
+        Ok(())
     }
 
     fn fetch(&self) -> Result<u32, RiscVError> {
@@ -281,13 +294,27 @@ impl RiscV {
         Ok(())
     }
 
+    pub fn reset(&mut self) {
+        self.registers.reset();
+        self.data_memory.reset();
+        self.pc.reset();
+    }
+
     pub fn print(&self) {
-        println!("Registers {{ {:?} }}\n{:?}\n{:?}", self.registers.dump_signed_vec(), self.pc, self.data_memory);
+        println!("Registers {{ {:?} }}\n{:?}\n{:?}", self.registers.dump_signed_vec(), self.pc, self.data_memory.dump());
+    }
+
+    pub fn dump(&self) -> (Vec<i32>, Vec<[u8; 4]>, u32) {
+        (
+            self.registers.dump_signed_vec(),
+            self.data_memory.dump(),
+            self.pc.get()
+        )
     }
 }
 
 impl Default for RiscV {
     fn default() -> Self {
-        Self::new(512)
+        Self::new(1024)
     }
 }

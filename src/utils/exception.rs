@@ -8,6 +8,9 @@ pub enum RiscVError {
     #[error("Memeory: Out of bound")]
     OutOfBoundMemory,
 
+    #[error("Memeory: Only can read 1 to 4 bytes")]
+    ReadInvalidByets,
+
     #[error("PC: PC value `{0}` not misaligned to byte")]
     InstructionAddressMisaligned(u32),
 
@@ -22,4 +25,18 @@ pub enum RiscVError {
 
     #[error("Exit with code {0}")]
     SystemExit(u32),
+
+    #[error("Reach end of Instructions")]
+    EndOfInstruction,
+}
+
+const USAGE: &str = "Usage: cargo run <binary_file>";
+
+#[derive(Error, Debug)]
+pub enum CliError {
+    #[error("CLI: No input binary file\n{}", USAGE)]
+    NoInputBinary,
+
+    #[error("CLI: Too many input file\n{}", USAGE)]
+    TooManyArgument,
 }
