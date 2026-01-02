@@ -289,13 +289,19 @@ impl RiscV {
         )
     }
 
-    pub fn dump_ins(&self) -> Result<Vec<String>, RiscVError> {
+    pub fn dump_ins(&mut self) -> Result<Vec<String>, RiscVError> {
         let mut ins_list = vec![];
         loop { 
-            match self.fetch() {
-            Ok(ins) => ins_list.push(self.decode(ins)?.to_string()),
-            Err(RiscVError::EndOfInstruction) => break Ok(ins_list),
-            Err(e) => break Err(e)
+            match self.decode(self.fetch()?) {
+                Ok(decoded) => {
+                    ins_list.push(decoded.to_string());
+                    self.pc.step();            
+                }
+                Err(RiscVError::EndOfInstruction) => {
+                    self.pc.reset();
+                    break Ok(ins_list);
+                },
+                Err(e) => break Err(e)
             }
         }
     }

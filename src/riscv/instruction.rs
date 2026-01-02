@@ -80,6 +80,9 @@ impl TryFrom<u32> for Instruction {
                 let imm = ins & 0xfffff000;
                 Instruction::UtypeAUIPC {rd, imm}  
             },  
+            0x0 => {
+                return Err(RiscVError::EndOfInstruction);
+            }
             not_exist_opcode => {
                 return Err(RiscVError::NotImplementedOpCode(not_exist_opcode))
             }
@@ -135,7 +138,7 @@ impl Display for Instruction {
                         true => "forward",
                         false => "backward"
                     },
-                    (imm >> 1) + 1
+                    (imm >> 1).abs()
                 )
             },
             Instruction::ItypeSys {imm} => {
@@ -202,10 +205,10 @@ impl Display for Instruction {
                     },
                     rs1, rs2, imm << 1, 
                     match imm.is_positive() {
-                        true => "foward",
+                        true => "forward",
                         false => "backward"
                     },
-                    (imm >> 1) + 1
+                    (imm >> 1).abs()
                 )
             },
             Instruction::Jtype {rd, imm} => {
@@ -216,7 +219,7 @@ impl Display for Instruction {
                         true => "forward",
                         false => "backward"
                     },
-                    (imm >> 1) + 1
+                    (imm >> 1).abs()
                 )
             },
             Instruction::UtypeLUI {rd, imm} => {
