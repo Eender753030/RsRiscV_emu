@@ -1,5 +1,7 @@
 use ratatui::widgets::ListState;
 
+use crate::riscv::RiscV;
+
 pub enum Selected {
     Ins,
     Reg,
@@ -18,7 +20,8 @@ pub struct ListStateRecord<T> {
     current_select: usize,
 }
 
-pub struct EmuState {
+pub struct EmuState<'a> {
+    pub emu: &'a mut RiscV,
     pub ins: ListStateRecord<String>,
     pub reg: ListStateRecord<i32>,
     pub mem: ListStateRecord<[u8; 4]>,
@@ -27,8 +30,8 @@ pub struct EmuState {
     pub selected: Selected,
 }
 
-impl EmuState {
-    pub fn new(ins_list: Vec<String>, reg_data: Vec<i32>, mem_data: Vec<[u8; 4]>, pc_num: u32) -> Self {
+impl <'a> EmuState<'a> {
+    pub fn new(emu: &'a mut RiscV, ins_list: Vec<String>, reg_data: Vec<i32>, mem_data: Vec<[u8; 4]>, pc_num: u32) -> Self {
         let mut ins: ListStateRecord<String> = ListStateRecord {list: ins_list, list_state: ListState::default(), current_select: 0}; 
         let mut reg: ListStateRecord<i32> = ListStateRecord {list: reg_data, list_state: ListState::default(), current_select: 0}; 
         let mut mem: ListStateRecord<[u8; 4]> = ListStateRecord {list: mem_data, list_state: ListState::default(), current_select: 0}; 
@@ -37,10 +40,10 @@ impl EmuState {
         let selected = Selected::Ins;
 
         ins.list_state.select(Some(0));
-        reg.list_state.select(None);
-        mem.list_state.select(None);
+        reg.list_state.select(Some(0));
+        mem.list_state.select(Some(0));
         
-        EmuState {ins, reg, mem, pc, mode, selected}
+        EmuState {emu, ins, reg, mem, pc, mode, selected}
     }
 
     pub fn update_data(&mut self, data_tuple: (Vec<i32>, Vec<[u8; 4]>, u32)) {
@@ -73,47 +76,23 @@ impl EmuState {
         match self.selected {
             Selected::Ins => self.ins.list_state.select(Some(self.ins.current_select)),
             Selected::Reg => self.reg.list_state.select(Some(self.reg.current_select)),
-            Selected::Mem => self.mem.list_state.select(Some(self.mem.current_select))
+            Selected::Mem => self.mem.list_state.select(Some(self.mem.current_select)),
         }
     }
 
     pub fn go_left(&mut self) {  
         self.selected = match self.selected {
-            Selected::Ins => {
-                self.ins.list_state.select(None);
-                self.mem.list_state.select(Some(self.mem.current_select));
-                Selected::Mem
-            }
-            Selected::Reg => {
-                self.reg.list_state.select(None);
-                self.ins.list_state.select(Some(self.ins.current_select));
-                Selected::Ins
-            }
-            Selected::Mem => {
-                self.mem.list_state.select(None);
-                self.reg.list_state.select(Some(self.reg.current_select));
-                Selected::Reg
-            }
+            Selected::Ins => Selected::Mem,
+            Selected::Reg => Selected::Ins,
+            Selected::Mem => Selected::Reg,
         };
     }
 
     pub fn go_right(&mut self) {  
         self.selected = match self.selected {
-            Selected::Ins => {
-                self.ins.list_state.select(None);
-                self.reg.list_state.select(Some(self.reg.current_select));
-                Selected::Reg
-            }
-            Selected::Reg => {
-                self.reg.list_state.select(None);
-                self.mem.list_state.select(Some(self.mem.current_select));
-                Selected::Mem
-            }
-            Selected::Mem => {
-                self.mem.list_state.select(None);
-                self.ins.list_state.select(Some(self.ins.current_select));
-                Selected::Ins
-            }
+            Selected::Ins => Selected::Reg,
+            Selected::Reg => Selected::Mem, 
+            Selected::Mem => Selected::Ins,
         };
     }
 

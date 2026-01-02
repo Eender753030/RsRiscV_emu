@@ -22,10 +22,10 @@ fn main() -> Result<()> {
     let ins_list = machine.dump_ins()?;
 
     // Create mut instant for Risc-V's state. Mut is for changing data and state of Risc-V
-    let mut emu_state = state::EmuState::new(ins_list, reg_data, mem_data, pc_num);
+    let mut emu_state = state::EmuState::new(&mut machine, ins_list, reg_data, mem_data, pc_num);
 
     // Go into the TUI display loop
-    ui::tui_loop(&mut emu_state, &mut machine)?;
+    ui::tui_loop(&mut emu_state)?;
 
     Ok(())
 }
