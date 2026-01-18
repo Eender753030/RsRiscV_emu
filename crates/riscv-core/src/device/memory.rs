@@ -15,7 +15,7 @@ struct Page {
 
 impl Default for Page {
     fn default() -> Self {
-        Page {space: [0; PAGE_SIZE]}
+        Page { space: [0; PAGE_SIZE] }
     }
 }
 
@@ -38,7 +38,7 @@ impl DerefMut for Page {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Memory {
     pub size: usize,
-    pages: Vec<Option<Box<Page>>>
+    pages: Vec<Option<Box<Page>>>,
 }
 
 impl Memory {
@@ -46,14 +46,11 @@ impl Memory {
         let aligned_size = size.max(PAGE_SIZE).next_multiple_of(PAGE_SIZE);
         let pages = vec![None; aligned_size / PAGE_SIZE];
 
-        Memory {
-            size: aligned_size,
-            pages
-        }
+        Memory { size: aligned_size, pages }
     }
 
     /// Reset `Memory`'s `space` by fill 0
-    pub fn reset(&mut self) {   
+    pub fn reset(&mut self) {
         self.pages.fill(None);
     }
 
@@ -69,7 +66,7 @@ impl Memory {
     }
 }
 
-const _4GB: usize = 4 * 1024 * 1024 * 1024; 
+const _4GB: usize = 4 * 1024 * 1024 * 1024;
 
 impl Default for Memory {
     fn default() -> Self {
@@ -105,9 +102,9 @@ impl Bus for Memory {
         let addr = addr as usize;
 
         if addr + size > self.size {
-           return Err(RiscVError::OutOfBoundMemory);
-        } 
- 
+            return Err(RiscVError::OutOfBoundMemory);
+        }
+
         let mut start = 0;
         let mut curr_addr = addr;
 
@@ -118,10 +115,10 @@ impl Bus for Memory {
 
             let page = self.translate(curr_addr);
 
-            des[start..start+len].copy_from_slice(&page[p_start..p_start+len]);
+            des[start..start + len].copy_from_slice(&page[p_start..p_start + len]);
 
             start += len;
-            curr_addr += len; 
+            curr_addr += len;
         }
 
         Ok(())
@@ -132,7 +129,7 @@ impl Bus for Memory {
 
         if addr + size > self.size {
             return Err(RiscVError::OutOfBoundMemory);
-        } 
+        }
 
         let mut start = 0;
         let mut curr_addr = addr;
@@ -144,10 +141,10 @@ impl Bus for Memory {
 
             let page = self.translate(curr_addr);
 
-            page[p_start..p_start+len].copy_from_slice(&src[start..start+len]);
+            page[p_start..p_start + len].copy_from_slice(&src[start..start + len]);
 
             start += len;
-            curr_addr += len; 
+            curr_addr += len;
         }
 
         Ok(())
@@ -181,7 +178,6 @@ mod memory_tests {
         assert_eq!(mem.pages[1], None);
         assert!(mem.pages[0].is_some());
 
-
         // Part 2: test bytes
         let data = [0xAA, 0xBB, 0xCC, 0xDD];
 
@@ -196,6 +192,5 @@ mod memory_tests {
 
         assert!(mem.pages[0].is_some());
         assert!(mem.pages[1].is_some());
-
     }
 }

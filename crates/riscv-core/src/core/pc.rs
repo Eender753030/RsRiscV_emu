@@ -29,6 +29,6 @@ impl PC {
 
 impl Default for PC {
     fn default() -> Self {
-        PC {pointer: INIT_RAM_START}
+        PC { pointer: INIT_RAM_START }
     }
 }

@@ -19,7 +19,7 @@ pub struct SystemBus {
 
 impl SystemBus {
     pub fn new(ram_size: usize) -> Self {
-        SystemBus {ram: Memory::new(ram_size)}
+        SystemBus { ram: Memory::new(ram_size) }
     }
 
     pub fn load_ins(&mut self, addr: u32, code: &[u8]) -> Result<(), RiscVError> {
@@ -30,11 +30,16 @@ impl SystemBus {
         self.ram_read_u32_byte(addr, 4, false)
     }
 
-    pub fn ram_read_u32_byte(&mut self, addr: u32, len: usize, is_signed: bool) -> Result<u32, RiscVError> {
+    pub fn ram_read_u32_byte(
+        &mut self,
+        addr: u32,
+        len: usize,
+        is_signed: bool,
+    ) -> Result<u32, RiscVError> {
         if !(1..=4).contains(&len) {
-            return Err(RiscVError::ReadInvalidBytes);   
+            return Err(RiscVError::ReadInvalidBytes);
         }
-    
+
         let mut four_bytes = [0; 4];
 
         self.ram.read_bytes(addr, len, &mut four_bytes[..len])?;
@@ -56,5 +61,5 @@ impl SystemBus {
         } else {
             self.ram_read_u32(addr)
         }
-    } 
+    }
 }
