@@ -1,13 +1,12 @@
 use crate::error::RiscVError;
-use super::{Reset, Dump};
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct Registers {
     reg: [u32; 32],
 } 
 
 impl Registers {
-    pub fn read(&self, id: usize) -> Result<u32, RiscVError> {
+    pub fn read(&self, id: u8) -> Result<u32, RiscVError> {
         if id == 0 {
             return Ok(0);
         } 
@@ -16,10 +15,10 @@ impl Registers {
             return Err(RiscVError::InvalidRegister(id));
         } 
 
-        Ok(self.reg[id])
+        Ok(self.reg[id as usize])
     }
 
-    pub fn write(&mut self, id: usize, data: u32) -> Result<(), RiscVError> {
+    pub fn write(&mut self, id: u8, data: u32) -> Result<(), RiscVError> {
         if id == 0 {
             return Ok(());
         }
@@ -28,27 +27,17 @@ impl Registers {
             return Err(RiscVError::InvalidRegister(id));
         } 
 
-        self.reg[id] = data;
+        self.reg[id as usize] = data;
 
 
         Ok(())
     } 
-}
-
-impl Default for Registers {
-    fn default() -> Self {
-        Registers{reg: [0; 32]}
-    }
-}
-
-impl Reset for Registers {
-    fn reset(&mut self) {
+    
+    pub fn reset(&mut self) {
         self.reg.fill(0);
     }
-}
 
-impl Dump<i32> for Registers {
-    fn dump(&self) -> Vec<i32> {
+    pub fn dump(&self) -> Vec<i32> {
         self.reg.iter().map(|&x| x as i32).collect()
     }
 }

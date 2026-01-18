@@ -3,7 +3,7 @@ use thiserror::Error;
 #[derive(Error, Debug, PartialEq)]
 pub enum RiscVError {
     #[error("Register: Not exist register: {0}")]
-    InvalidRegister(usize),
+    InvalidRegister(u8),
 
     #[error("Memeory: Out of bound")]
     OutOfBoundMemory,
