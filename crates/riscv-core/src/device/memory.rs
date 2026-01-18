@@ -42,24 +42,10 @@ pub struct Memory {
 }
 
 impl Memory {
-    /// Create a `Memory` instance for initialize elements in `space` are 0. 
-    /// Force the `size` up to that divides exactly by 4 for align. 
-    /// The `size = 1024` means 1KB
-    /// ## Example
-    /// ```rust,ignore
-    /// let mut mem = Memory::new(1024);
-    /// // mem's size is 1024
-    /// let mut mem = Memory::new(0);
-    /// // mem's size is 4 
-    /// let mut mem = Memory::new(22);
-    /// // mem's size is 24 
-    /// ```
     pub fn new(size: usize) -> Self {
         let aligned_size = size.max(PAGE_SIZE).next_multiple_of(PAGE_SIZE);
-        let mut pages = Vec::with_capacity(aligned_size / PAGE_SIZE);
-        for _ in 0..aligned_size {
-            pages.push(None);
-        }
+        let pages = vec![None; aligned_size / PAGE_SIZE];
+
         Memory {
             size: aligned_size,
             pages
@@ -67,16 +53,6 @@ impl Memory {
     }
 
     /// Reset `Memory`'s `space` by fill 0
-    /// ## Example
-    /// # use super::Memory;
-    /// ```rust,ignore
-    /// let mut mem = Memory::new(4);
-    /// let data = vec![0xDD, 0xCC, 0xBB, 0xAA];
-    /// mem.load(0, &data).unwrap();
-    /// 
-    /// mem.reset();
-    /// // Now mem'space is vec![0; 4]
-    /// ```
     pub fn reset(&mut self) {   
         self.pages.fill(None);
     }

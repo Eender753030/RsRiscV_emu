@@ -1,13 +1,11 @@
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+const INIT_RAM_START: u32 = 0x8000_0000;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PC {
     pointer: u32,
 }
 
 impl PC {
-    pub fn new(start: u32) -> Self {
-        PC {pointer: start}
-    }
-
     pub fn step(&mut self) {
         self.pointer += 4;
     }
@@ -16,8 +14,8 @@ impl PC {
         self.pointer
     }
 
-    pub fn reset(&mut self, pointer: u32) {
-        self.pointer = pointer;
+    pub fn reset(&mut self) {
+        self.pointer = INIT_RAM_START;
     }
 
     pub fn related_addressing(&mut self, offset: i32) {
@@ -26,5 +24,11 @@ impl PC {
 
     pub fn directed_addressing(&mut self, address: u32) {
         self.pointer = address;
+    }
+}
+
+impl Default for PC {
+    fn default() -> Self {
+        PC {pointer: INIT_RAM_START}
     }
 }

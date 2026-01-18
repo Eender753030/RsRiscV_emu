@@ -4,8 +4,8 @@ use crate::error::RiscVError;
 use crate::isa::{decoder, Instruction, types::*};
 use crate::engine::*;
 
-const INIT_RAM_START: u32 = 0x8000_0000;
 
+#[derive(Debug, Clone, PartialEq, Default)]
 pub struct Cpu {
     reg: Registers,
     pc: PC,
@@ -13,20 +13,6 @@ pub struct Cpu {
 }
 
 impl Cpu {
-    pub fn new(ram_size: usize) -> Self {
-        let start_pointer = if ram_size > INIT_RAM_START as usize {
-            INIT_RAM_START
-        } else {
-            0x0
-        };
-
-        Cpu {
-            bus: SystemBus::new(ram_size),
-            pc: PC::new(start_pointer),
-            ..Default::default()
-        }
-    }
-
     pub fn load(&mut self, code: &[u8]) -> Result<(), RiscVError> {
         self.bus.load_ins(self.pc.get(), code)
     }
@@ -121,7 +107,7 @@ impl Cpu {
 
     pub fn reset(&mut self) {
         self.bus.ram.reset();
-        self.pc.reset(INIT_RAM_START);
+        self.pc.reset();
         self.reg.reset();
     }
 
@@ -131,15 +117,5 @@ impl Cpu {
             vec![[0;4]; 10], // Give 0 to let compile pass
             self.pc.get()
         )
-    }
-}
-
-impl Default for Cpu {
-    fn default() -> Self {
-        Cpu {
-            reg: Registers::default(),
-            pc: PC::new(INIT_RAM_START),
-            bus: SystemBus::default(),
-        }
     }
 }

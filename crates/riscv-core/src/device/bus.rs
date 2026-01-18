@@ -43,7 +43,7 @@ impl SystemBus {
             four_bytes[len..].fill(0xff);
         }
 
-        Ok(u32::from_be_bytes(four_bytes))
+        Ok(u32::from_le_bytes(four_bytes))
     }
 
     pub fn ram_write_u32(&mut self, addr: u32, data: u32) -> Result<(), RiscVError> {
