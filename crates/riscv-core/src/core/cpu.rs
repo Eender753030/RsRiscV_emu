@@ -1,5 +1,5 @@
-use super::{PC, Registers};
-// use crate::core::csr::CsrFile;
+use super::{PC, RegisterFile};
+use crate::core::csr::CsrFile;
 use crate::device::bus::{Bus, SystemBus};
 use crate::engine::*;
 use crate::error::RiscVError;
@@ -8,9 +8,9 @@ use crate::isa::*;
 
 #[derive(Clone, PartialEq, Default)]
 pub struct Cpu {
-    reg: Registers,
+    reg: RegisterFile,
     pc: PC,
-    //   csr: CsrFile,
+    csr: CsrFile,
     bus: SystemBus,
 }
 
@@ -28,25 +28,27 @@ impl std::fmt::Debug for Cpu {
 }
 
 impl Cpu {
-    pub fn load(&mut self, code: &[u8]) -> Result<(), RiscVError> {
-        if let Err(e) = self.bus.write_bytes(self.pc.get(), code.len(), code) {
+    pub fn load(&mut self, addr: u32, code: &[u8]) {
+        if let Err(e) = self.bus.write_bytes(addr, code.len(), code) {
             self.trap_handle(e)
-        } else {
-            Ok(())
         }
     }
 
     pub fn run(&mut self) -> Result<(), RiscVError> {
         loop {
+            let prev_pc = self.pc.get();
             if let Err(e) = self.step() {
                 break Err(e);
             }
+            if prev_pc == self.pc.get() {
+                break Ok(());
+            }
         }
     }
-
+ 
     pub fn step(&mut self) -> Result<(), RiscVError> {
-        if let Err(execpt) = self.cycle() {
-            self.trap_handle(execpt)?;
+        if let Err(execpt) = self.cycle() {        
+            self.trap_handle(execpt);
         }
         Ok(())
     }
@@ -75,7 +77,12 @@ impl Cpu {
                     return Ok(());
                 }
             },
-            // Instruction::System(op, data) => {},
+            Instruction::Ziscr(op, data) => {
+                if self.execute_zicsr(op, data)? {
+                    return Ok(());
+                }
+            },
+            Instruction::Zifencei(_, _) => {},
         }
 
         self.pc.step();
@@ -143,7 +150,9 @@ impl Cpu {
 
             Rv32iOp::Fence => {},
 
-            Rv32iOp::Ecall => {},
+            Rv32iOp::Ecall => {
+                return Err(Exception::EnvironmentCallFromMMode);
+            },
             Rv32iOp::Ebreak => {},
         }
 
@@ -154,10 +163,69 @@ impl Cpu {
         Ok(branch | jump)
     }
 
-    fn trap_handle(&mut self, except: Exception) -> Result<(), RiscVError> {
-        let _ = except;
+    fn execute_zicsr(&mut self, op: ZicsrOp, data: InstructionData) -> Result<bool, Exception> {
+        let addr = (data.imm & 0xfff) as u16;
+        let rs1_data = self.reg[data.rs1];
+        let zimm = data.rs1 as u32;
 
-        Err(RiscVError::EndOfInstruction)
+        match op {
+            ZicsrOp::Csrrw => {
+                if data.rd != 0 {
+                    let csr_data = self.csr.read(addr)?;
+                    self.csr.write(addr, rs1_data)?;
+                    self.reg.write(data.rd, csr_data);
+                } else {
+                    self.csr.write(addr, rs1_data)?;
+                }
+            },
+            ZicsrOp::Csrrs => {
+                let csr_data = self.csr.read(addr)?;
+                if data.rs1 != 0{
+                    self.csr.write(addr, rs1_data | csr_data)?;
+                }
+                self.reg.write(data.rd, csr_data);
+            },
+            ZicsrOp::Csrrc => {
+                let csr_data = self.csr.read(addr)?;
+                if data.rs1 != 0{
+                    self.csr.write(addr, (!rs1_data) & csr_data)?;
+                }
+                self.reg.write(data.rd, csr_data);
+            },
+            ZicsrOp::Csrrwi => {
+                if data.rd != 0 {
+                    let csr_data = self.csr.read(addr)?;
+                    self.csr.write(addr, zimm)?;
+                    self.reg.write(data.rd, csr_data);
+                } else {
+                    self.csr.write(addr, zimm)?;
+                } 
+            },
+            ZicsrOp::Csrrsi => {
+                let csr_data = self.csr.read(addr)?;  
+                if zimm != 0{
+                    self.csr.write(addr, zimm | csr_data)?;
+                }          
+                self.reg.write(data.rd, csr_data);      
+            },
+            ZicsrOp::Csrrci => {
+                let csr_data = self.csr.read(addr)?;
+                if zimm != 0{
+                    self.csr.write(addr, (!zimm) & csr_data)?;
+                }        
+                self.reg.write(data.rd, csr_data);
+            },
+            ZicsrOp::Mret => {
+                self.pc.directed_addressing(self.csr.trap_ret());
+                return Ok(true);
+            }
+        }
+        
+        Ok(false)
+    }
+
+    fn trap_handle(&mut self, except: Exception) {
+        self.pc.directed_addressing(self.csr.trap_entry(self.pc.get(), except));
     }
 
     pub fn reset(&mut self) {

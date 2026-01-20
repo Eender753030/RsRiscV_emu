@@ -1,9 +1,9 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub struct Registers {
+pub struct RegisterFile {
     reg: [u32; 32],
 }
 
-impl Registers {
+impl RegisterFile {
     pub fn read(&mut self, id: u8) -> u32 {
         self.reg[id as usize]
     }
@@ -23,24 +23,24 @@ impl Registers {
         self.reg.iter().map(|&x| x as i32).collect()
     }
 
-    pub fn iter(&self) -> IteratorRegisters<'_> {
-        IteratorRegisters { id: 0, reg: &self }
+    pub fn iter(&self) -> IteratorRegisterFile<'_> {
+        IteratorRegisterFile { id: 0, reg: &self }
     }
 }
 
-impl std::ops::Index<u8> for Registers {
+impl std::ops::Index<u8> for RegisterFile {
     type Output = u32;
     fn index(&self, index: u8) -> &Self::Output {
         &self.reg[index as usize]
     }
 }
 
-pub struct IteratorRegisters<'a> {
+pub struct IteratorRegisterFile<'a> {
     id: u8,
-    reg: &'a Registers,
+    reg: &'a RegisterFile,
 }
 
-impl <'a>Iterator for IteratorRegisters<'a> {
+impl <'a>Iterator for IteratorRegisterFile<'a> {
     type Item = u32;
     fn next(&mut self) -> Option<Self::Item> {
         if self.id < 32 {

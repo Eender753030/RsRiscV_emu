@@ -9,8 +9,8 @@ pub enum Exception {
     EnvironmentCallFromMMode = 11,
 }
 
-impl From<Exception> for u8 {
+impl From<Exception> for u32 {
     fn from(value: Exception) -> Self {
-        value as u8
+        value as u32
     }
 }
