@@ -1,8 +1,6 @@
-use super::instruction::Instruction;
-use super::instruction::Rv32iOp; // SystemOp};
 use super::opcode::{BitsOp, OpCode};
 use crate::exception::Exception;
-use crate::isa::instruction::InstructionData;
+use super::instruction::*;
 
 /// Turn 32 bits instruction to corresponding `Instruction` enum
 /// May return `RiscVError` of `NotImplementedOpCode`
@@ -36,8 +34,15 @@ pub fn decode(raw: u32) -> Result<Instruction, Exception> {
         // imm [11:0] | rs1 [4:0] | funct3 [2:0] | rd [4:0] | opcode [6:0]
         itype @ (OpCode::Itype | OpCode::ItypeLoad | OpCode::ItypeJump | OpCode::ItypeFence | OpCode::ItypeSystem) => {
             let imm = raw.get_bits_signed(20, 12);
+            
             if let Some(op) = Rv32iOp::decode_itype(itype, funct3, funct7, imm as u16) {
                 Ok(Instruction::Base(op, InstructionData { rd, rs1, rs2, imm }))
+            } else if let Some(op) = ZicsrOp::decode(funct3).or_else(||
+                ZicsrOp::decode_ret(raw)
+            ) {
+                Ok(Instruction::Ziscr(op, InstructionData { rd, rs1, rs2, imm }))
+            } else if let Some(op) =  ZifenceiOp::decode(funct3) {
+                Ok(Instruction::Zifencei(op, InstructionData { rd, rs1, rs2, imm }))
             } else {
                 Err(Exception::IllegalInstruction)
             }
