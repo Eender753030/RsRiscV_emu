@@ -1,7 +1,11 @@
 //! Definition of enum corresponding to opcode
 mod rv32i;
+mod zicsr;
+mod zifencei;
 
 pub use rv32i::Rv32iOp;
+pub use zicsr::ZicsrOp;
+pub use zifencei::ZifenceiOp;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct InstructionData {
@@ -15,5 +19,6 @@ pub struct InstructionData {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Instruction {
     Base(Rv32iOp, InstructionData),
-    // System(SystemOp, InstructionData),
+    Ziscr(ZicsrOp, InstructionData),
+    Zifencei(ZifenceiOp, InstructionData),
 }
