@@ -63,8 +63,11 @@ impl Instruction {
             },
             Instruction::Ziscr(op, data) => {
                 if op.is_csr() {
-                    format!("{:<7} x{}, {}, x{}", op, data.rd, 
-                        CsrAddr::try_from(data.imm).unwrap(), data.rs1)
+                    let csr_str = CsrAddr::try_from(data.imm)
+                        .map(|addr| addr.to_string())
+                        .unwrap_or_else(|addr| format!("{:#x}",addr));
+
+                    format!("{:<7} x{}, {}, x{}", op, data.rd, csr_str, data.rs1)
                 } else {
                     format!("{:<7}", op)
                 }
