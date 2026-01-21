@@ -60,11 +60,11 @@ impl std::fmt::Debug for Memory {
                     })
             })
             .try_for_each(|(addr, line)| {
-                write!(f, " [0x{:08X}] ", addr)?;
+                write!(f, " [0x{:08x}] ", addr)?;
 
                 line.chunks(4).try_for_each(|group| {
                     for byte in group {
-                        write!(f, "{:02X}", byte)?;
+                        write!(f, "{:02x}", byte)?;
                     }
                     write!(f, " ")
                 })?;

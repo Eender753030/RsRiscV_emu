@@ -30,7 +30,7 @@ pub fn decode(raw: u32) -> Result<Instruction, DecodeError> {
 
     match OpCode::try_from(opcode)? {
         // imm [11:0] | rs1 [4:0] | funct3 [2:0] | rd [4:0] | opcode [6:0]
-        itype @ (OpCode::Itype | OpCode::ItypeLoad | OpCode::ItypeJump | OpCode::ItypeFence | OpCode::ItypeSystem) => {
+        itype @ (OpCode::ItypeAr | OpCode::ItypeLoad | OpCode::ItypeJump | OpCode::ItypeFence | OpCode::ItypeSystem) => {
             let imm = raw.get_bits_signed(20, 12);
             
             if let Some(op) = Rv32iOp::decode_itype(itype, funct3, funct7, imm as u16) {

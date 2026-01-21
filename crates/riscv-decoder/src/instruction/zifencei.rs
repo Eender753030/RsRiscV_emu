@@ -11,3 +11,9 @@ impl ZifenceiOp {
         }
     }
 }
+
+impl std::fmt::Display for ZifenceiOp {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "fence.i")
+    }
+}

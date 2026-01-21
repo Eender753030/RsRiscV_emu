@@ -19,7 +19,7 @@ pub struct Cpu {
 impl std::fmt::Debug for Cpu {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "Cpu {{")?;
-        writeln!(f, " PC: {:#08X}", self.pc.get())?;
+        writeln!(f, " PC: {:#08x}", self.pc.get())?;
         write!(f, " Registers {{")?;
         self.reg.iter().enumerate().try_for_each(|(id, reg)|
             write!(f, " x{}: {}", id, reg as i32)
@@ -56,11 +56,11 @@ impl Cpu {
     }
 
     fn cycle(&mut self) -> Result<(), Exception> {
-        let instruction = self.fetch()?;
+        let raw = self.fetch()?;
         
-        let type_data = self.decode(instruction)?;
-
-        self.execute(type_data)?;
+        let ins = self.decode(raw)?;
+        
+        self.execute(ins)?;
         Ok(())
     }
 
@@ -87,7 +87,6 @@ impl Cpu {
             },
             Instruction::Zifencei(_, _) => {},
         }
-
         self.pc.step();
         Ok(())
     }

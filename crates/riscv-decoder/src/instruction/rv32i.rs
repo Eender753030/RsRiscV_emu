@@ -2,58 +2,36 @@ use crate::opcode::OpCode;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Rv32iOp {
-    // Itype
-    Addi,
-    Slli,
-    Slti,
-    Sltiu,
-    Xori,
-    Srli,
-    Srai,
-    Ori,
-    Andi,
-    Lb,
-    Lh,
-    Lw,
-    Lbu,
-    Lhu,
+    // Itype Ar
+    Addi, Slli, Slti, Sltiu,
+    Xori, Srli, Srai, Ori, Andi,
+    // Itype Load
+    Lb, Lh, Lw, 
+    Lbu, Lhu,
+    // Itype Jump
     Jalr,
+    // Itype Fence
     Fence,
-    Ecall,
-    Ebreak,
+    // Itype System
+    Ecall, Ebreak,
     // Rtype
-    Add,
-    Sub,
-    Sll,
-    Slt,
-    Sltu,
-    Xor,
-    Srl,
-    Sra,
-    Or,
-    And,
+    Add, Sub, Sll, Slt, Sltu,
+    Xor, Srl, Sra, Or, And,
     // Btype
-    Beq,
-    Bne,
-    Blt,
-    Bge,
-    Bltu,
-    Bgeu,
+    Beq, Bne, Blt, Bge,
+    Bltu, Bgeu,
     // Stype
-    Sb,
-    Sh,
-    Sw,
+    Sb, Sh, Sw,
     // Jtype
     Jal,
     // Utype
-    Auipc,
-    Lui,
+    Lui, Auipc,
 }
 
 impl Rv32iOp {
     pub(crate) fn decode_itype(opcode: OpCode, funct3: u8, funct7: u8, funct12: u16) -> Option<Rv32iOp> {
         match opcode {
-            OpCode::Itype => match funct3 {
+            OpCode::ItypeAr => match funct3 {
                 0x0 => Some(Rv32iOp::Addi),
                 0x1 => Some(Rv32iOp::Slli),
                 0x2 => Some(Rv32iOp::Slti),
@@ -149,5 +127,104 @@ impl Rv32iOp {
             OpCode::UtypeLui => Some(Rv32iOp::Lui),
             _ => None,
         }
+    }
+
+    pub(crate) fn is_itype_ar(&self) -> bool {
+        matches!(self, 
+                Rv32iOp::Addi | Rv32iOp::Slli |
+                Rv32iOp::Slti | Rv32iOp::Sltiu |
+                Rv32iOp::Xori | Rv32iOp::Srli |
+                Rv32iOp::Srai |  Rv32iOp::Ori |
+                Rv32iOp::Andi
+        )
+    }
+
+    pub(crate) fn is_itype_load(&self) -> bool {
+        matches!(self, 
+            Rv32iOp::Lb | Rv32iOp::Lh | Rv32iOp::Lw
+            | Rv32iOp::Lbu | Rv32iOp::Lhu
+        )
+    }
+
+    pub(crate) fn is_itype_jump(&self) -> bool {
+        self == &Rv32iOp::Jalr
+    }
+
+    pub(crate) fn is_itype_system(&self) -> bool {
+        matches!(self,
+            Rv32iOp::Ecall | Rv32iOp::Ebreak
+        )
+
+    }
+    pub(crate) fn is_itype_fence(&self) -> bool {
+        self == &Rv32iOp::Fence
+    }
+
+    #[allow(unused)]
+    pub(crate) fn is_rtype(&self) -> bool {
+        matches!(self, 
+            Rv32iOp:: Add | Rv32iOp:: Sub |
+            Rv32iOp:: Sll | Rv32iOp:: Slt |
+            Rv32iOp:: Sltu | Rv32iOp:: Xor |
+            Rv32iOp:: Srl | Rv32iOp:: Sra |
+            Rv32iOp:: Or | Rv32iOp:: And
+        )
+    }
+
+    pub(crate) fn is_stype(&self) -> bool {
+        matches!(self, 
+            Rv32iOp:: Sb| Rv32iOp::Sh | Rv32iOp::Sw
+        )
+    }
+
+    pub(crate) fn is_btype(&self) -> bool {
+        matches!(self, 
+            Rv32iOp:: Beq | Rv32iOp:: Bne | 
+            Rv32iOp:: Blt | Rv32iOp:: Bge |
+            Rv32iOp:: Bltu | Rv32iOp:: Bgeu
+        )
+    }
+
+    pub(crate) fn is_jtype(&self) -> bool {
+        self == &Rv32iOp::Jal
+    }
+
+    pub(crate) fn is_utype(&self) -> bool {
+        matches!(self, 
+            Rv32iOp::Lui | Rv32iOp::Auipc)
+    }
+
+}
+
+impl std::fmt::Display for Rv32iOp {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let op_str = match self {
+            Rv32iOp::Addi => "addi", Rv32iOp::Slli => "slli", Rv32iOp::Slti => "slti",
+            Rv32iOp::Sltiu => "sltiu", Rv32iOp::Xori => "sltiu", Rv32iOp::Srli => "srli",
+            Rv32iOp::Srai => "srai", Rv32iOp::Ori => "ori", Rv32iOp::Andi => "andi",
+
+            Rv32iOp::Add => "add", Rv32iOp::Sub => "sub", Rv32iOp::Sll => "sll",
+            Rv32iOp::Slt => "slt", Rv32iOp::Sltu => "sltu", Rv32iOp::Xor => "xor",
+            Rv32iOp::Srl => "srl", Rv32iOp::Sra => "sra",
+            Rv32iOp::Or => "or", Rv32iOp::And => "and",
+
+            Rv32iOp::Lb => "lb", Rv32iOp::Lh => "lh", Rv32iOp::Lw => "lw",
+            Rv32iOp::Lbu => "lbu", Rv32iOp::Lhu => "lhu",
+
+            Rv32iOp::Sb => "sb", Rv32iOp::Sh => "sh", Rv32iOp::Sw => "sw",
+
+            Rv32iOp::Beq => "beq", Rv32iOp::Bne => "bne", Rv32iOp::Blt => "blt",
+            Rv32iOp::Bge => "bge", Rv32iOp::Bltu => "bltu", Rv32iOp::Bgeu => "bgeu",
+
+            Rv32iOp::Jal => "jal", Rv32iOp::Jalr => "jalr",
+
+            Rv32iOp::Lui => "lui", Rv32iOp::Auipc => "auipc",
+
+            Rv32iOp::Fence => "fence",
+
+            Rv32iOp::Ecall => "ecall", Rv32iOp::Ebreak => "ebreak",
+        };
+
+        write!(f, "{}", op_str)
     }
 }

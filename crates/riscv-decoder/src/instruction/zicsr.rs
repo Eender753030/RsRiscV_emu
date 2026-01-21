@@ -1,11 +1,7 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ZicsrOp {
-    Csrrw,
-    Csrrs,
-    Csrrc,
-    Csrrwi,
-    Csrrsi,
-    Csrrci,
+    Csrrw, Csrrs, Csrrc,
+    Csrrwi, Csrrsi, Csrrci,
     Mret,
 }
 
@@ -27,5 +23,29 @@ impl ZicsrOp {
             0x30200073 => Some(ZicsrOp::Mret),
             _ => None
         }
+    }
+
+    pub(crate) fn is_csr(&self) -> bool {
+        matches!(self, 
+            ZicsrOp::Csrrw | ZicsrOp::Csrrs | ZicsrOp::Csrrc |
+            ZicsrOp::Csrrwi | ZicsrOp::Csrrsi | ZicsrOp::Csrrci
+        )
+    }
+
+    #[allow(unused)]
+    pub(crate) fn is_ret(&self) -> bool {
+        self == &ZicsrOp::Mret
+    }
+}
+
+impl std::fmt::Display for ZicsrOp {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", 
+            match self {
+                ZicsrOp::Csrrw => "csrrw", ZicsrOp::Csrrs => "csrrs", ZicsrOp::Csrrc => "csrrc",
+                ZicsrOp::Csrrwi => "csrrwi", ZicsrOp::Csrrsi => "csrrsi", ZicsrOp::Csrrci => "csrrci",
+                ZicsrOp::Mret => "mret",
+            }
+        )
     }
 }

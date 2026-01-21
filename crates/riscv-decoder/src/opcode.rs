@@ -5,7 +5,7 @@ use crate::error::DecodeError;
 /// Define const of every instruction corresponding to opcode
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum OpCode {
-    Itype = 0x13,
+    ItypeAr = 0x13,
     ItypeLoad = 0x03,
     ItypeJump = 0x67,
     ItypeFence = 0x0f,
@@ -23,7 +23,7 @@ impl TryFrom<u8> for OpCode {
 
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         match value {
-            0x13 => Ok(OpCode::Itype),
+            0x13 => Ok(OpCode::ItypeAr),
             0x03 => Ok(OpCode::ItypeLoad),
             0x67 => Ok(OpCode::ItypeJump),
             0x0f => Ok(OpCode::ItypeFence),
@@ -49,7 +49,7 @@ impl std::fmt::Display for OpCode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let opcode: u8 = (*self).into();
         let op_str = match self {
-            OpCode::Itype => "I-type",
+            OpCode::ItypeAr => "I-type",
             OpCode::ItypeLoad => "I-type: load",
             OpCode::ItypeJump => "I-type: jump",
             OpCode::ItypeFence => "I-type: fence",
@@ -62,6 +62,6 @@ impl std::fmt::Display for OpCode {
             OpCode::UtypeAuipc => "U-type: auipc",        
         };
         
-        write!(f, "{:#02X}({})", opcode, op_str)
+        write!(f, "{:#02x}({})", opcode, op_str)
     }
 }
