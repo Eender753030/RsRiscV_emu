@@ -6,5 +6,6 @@ pub mod error;
 pub mod exception;
 
 pub use core::RiscV;
+pub mod debug;
 
 pub mod prelude;

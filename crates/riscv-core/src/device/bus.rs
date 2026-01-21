@@ -18,7 +18,7 @@ pub struct SystemBus {
     ram: Memory,
 }
 
-const DRAM_BASE_ADDR: u32 = 0x8000_0000;
+pub const DRAM_BASE_ADDR: u32 = 0x8000_0000;
 
 impl SystemBus {
     pub fn mapping(&self, addr: u32) -> Result<(&dyn Bus, u32), Exception> {
@@ -49,12 +49,12 @@ impl SystemBus {
         }
     }
 
-    pub fn read_u32(&mut self, addr: u32) -> Result<u32, Exception> { 
+    pub fn read_u32(&self, addr: u32) -> Result<u32, Exception> { 
         self.read_u32_bytes(addr, 4, false)
     }
 
-    pub fn read_u32_bytes(&mut self, addr: u32, len: usize, is_signed: bool) -> Result<u32, Exception> {
-        let (device, real_addr) = self.mapping_mut(addr)?;
+    pub fn read_u32_bytes(&self, addr: u32, len: usize, is_signed: bool) -> Result<u32, Exception> {
+        let (device, real_addr) = self.mapping(addr)?;
 
         let mut four_bytes = [0; 4];
 

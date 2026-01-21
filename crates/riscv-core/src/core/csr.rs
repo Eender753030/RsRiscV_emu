@@ -52,6 +52,14 @@ impl CsrFile {
         self.mepc
     } 
 
+    pub fn inspect(&self) -> Vec<(String, u32)> {
+        vec![
+            ("mstatus".to_string(), self.mstate),
+            ("mtvec".to_string(), self.mtvec),
+            ("mepc".to_string(), self.mepc),
+            ("mcause".to_string(), self.mcause),
+        ]
+    }
 }
 
 pub enum CsrAddr {

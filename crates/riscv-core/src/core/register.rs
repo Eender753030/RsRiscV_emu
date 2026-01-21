@@ -1,6 +1,6 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct RegisterFile {
-    reg: [u32; 32],
+    regs: [u32; 32],
 }
 
 impl RegisterFile {
@@ -8,35 +8,39 @@ impl RegisterFile {
         if id == 0 {
             return;
         }
-        self.reg[id as usize] = data;
+        self.regs[id as usize] = data;
     }
 
     pub fn reset(&mut self) {
-        self.reg.fill(0);
+        self.regs.fill(0);
     }
 
     pub fn iter(&self) -> IteratorRegisterFile<'_> {
-        IteratorRegisterFile { id: 0, reg: self }
+        IteratorRegisterFile { id: 0, regs: self }
+    }
+
+    pub fn inspect(&self) -> [u32; 32] {
+        self.regs
     }
 }
 
 impl std::ops::Index<u8> for RegisterFile {
     type Output = u32;
     fn index(&self, index: u8) -> &Self::Output {
-        &self.reg[index as usize]
+        &self.regs[index as usize]
     }
 }
 
 pub struct IteratorRegisterFile<'a> {
     id: u8,
-    reg: &'a RegisterFile,
+    regs: &'a RegisterFile,
 }
 
 impl <'a>Iterator for IteratorRegisterFile<'a> {
     type Item = u32;
     fn next(&mut self) -> Option<Self::Item> {
         if self.id < 32 {
-            let next = Some(self.reg[self.id]);
+            let next = Some(self.regs[self.id]);
             self.id += 1;
             next
         } else {
