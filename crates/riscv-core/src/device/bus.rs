@@ -1,4 +1,4 @@
-use crate::exception::Exception;
+use crate::{constance::PAGE_SIZE, exception::Exception};
 
 use super::memory::Memory;
 
@@ -76,6 +76,10 @@ impl SystemBus {
         let (device, real_addr) = self.mapping_mut(addr)?;
         device.write_bytes(real_addr, len, &data.to_le_bytes())?;
         Ok(())
+    }
+
+    pub fn ram_info(&self) -> (usize, u32, usize) {
+        (self.ram.size, DRAM_BASE_ADDR, PAGE_SIZE)
     }
 
     pub fn reset_ram(&mut self) {

@@ -287,4 +287,10 @@ impl DebugInterface for Cpu {
         let _ = self.bus.read_bytes(addr, len, &mut mem);
         mem
     }    
+
+    fn get_info(&self) -> MachineInfo {
+        let (dram_size, dram_base, page_size) = self.bus.ram_info();
+
+        MachineInfo::new(dram_size, dram_base, page_size)
+    }
 }

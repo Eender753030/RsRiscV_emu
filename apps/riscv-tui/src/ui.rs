@@ -14,7 +14,7 @@ use anyhow::Result;
 use std::time::Duration;
 
 use crate::ui::state::{Mid, Selected};
-use riscv_core::{RiscV, constance::DRAM_BASE_ADDR, debug::*, error::RiscVError};
+use riscv_core::{RiscV, constance::{DRAM_BASE_ADDR, PAGE_SIZE}, debug::*, error::RiscVError};
 use key::KeyControl;
 use state::{EmuState, EmuMode};
 
@@ -45,6 +45,8 @@ pub fn tui_loop(machine: &mut RiscV, code: &Vec<u8>) -> Result<()> {
                     KeyControl::GoPrev => emu_state.prev(),
                     KeyControl::GoLeft => emu_state.go_left(),
                     KeyControl::GoRight => emu_state.go_right(),
+                    KeyControl::NextPage => emu_state.next_page(),
+                    KeyControl::PrevPage => emu_state.prev_page(),
                     KeyControl::ChangeMid => emu_state.change_mid(),
                     _ => {},
                 }
@@ -148,7 +150,7 @@ fn render_ins<D: DebugInterface>(f: &mut Frame, area: Rect, emu_state: &mut EmuS
         } else {
             "     "
         };
-        ListItem::new(format!("{} {:#08x}: {}", marker, addr, ins))
+        ListItem::new(format!("{} {:#010x}: {}", marker, addr, ins))
     }).collect();
     let highlight_color = match &emu_state.selected {
         Selected::Ins => (Color::Rgb(242, 242, 242), Color::Rgb(0, 50, 98)),
@@ -193,7 +195,7 @@ fn render_mid<D: DebugInterface>(f: &mut Frame, area: Rect, emu_state: &mut EmuS
 fn render_mem<D: DebugInterface>(f: &mut Frame, area: Rect, emu_state: &mut EmuState<D>) {
     let items: Vec<ListItem> = emu_state.mem.list.chunks(4).enumerate()
         .map(|(i, data)| {
-            ListItem::new(format!(" {:#08x}: {}", i * 16, 
+            ListItem::new(format!(" {:#010x}: {}", i * 16 + (emu_state.page_selected * PAGE_SIZE), 
                 data.iter().map(|d| format!("{:02x} ", d)).collect::<String>()))
         }).collect();
 
@@ -203,7 +205,7 @@ fn render_mem<D: DebugInterface>(f: &mut Frame, area: Rect, emu_state: &mut EmuS
     };
 
     let list = List::new(items)
-        .block(Block::bordered().title("Dram"))
+        .block(Block::bordered().title(format!("Dram [{:#010x} - {:#010x}]", emu_state.page_selected * PAGE_SIZE, (emu_state.page_selected + 1) * PAGE_SIZE - 1)))
         .style(Style::default().bg(Color::Rgb(0, 50, 98)).fg(Color::Rgb(253, 181, 21)))
         .highlight_style(Style::default().bg(highlight_color.0).fg(highlight_color.1));
 

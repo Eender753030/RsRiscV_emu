@@ -1,7 +1,6 @@
 use ratatui::widgets::ListState;
 
-use riscv_core::debug::DebugInterface;
-use riscv_core::constance::*;
+use riscv_core::debug::{DebugInterface, MachineInfo};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Mid {
@@ -63,35 +62,44 @@ pub struct EmuState<'a, D: DebugInterface> {
     pub mode: EmuMode,
     pub selected: Selected,
     pub mid_selected: Mid,
-
+    pub page_selected: usize,
     code_len: usize,
+
+    machine_info: MachineInfo,
 }
 
 impl <'a, D: DebugInterface> EmuState<'a, D> {
     pub fn new(machine: &'a mut D, code_len: usize) -> Self {
-        let ins = ListStateRecord::new(machine.inspect_ins(DRAM_BASE_ADDR, code_len));
+        let machine_info = machine.get_info();
+        let (_, dram_base, page_size) = machine_info.get_info();
+
+        let ins = ListStateRecord::new(machine.inspect_ins(dram_base, code_len));
         let reg = ListStateRecord::new(machine.inspect_regs().into_iter().collect());
         let csr = ListStateRecord::new(machine.inspect_csrs());
-        let mem = ListStateRecord::new(machine.inspect_mem(DRAM_BASE_ADDR, PAGE_SIZE));
+        let mem = ListStateRecord::new(machine.inspect_mem(dram_base, page_size));
         let pc = machine.inspect_pc();
-
+        let page_selected = 0;
         let mode = EmuMode::Observation;
         let selected = Selected::Ins;
         let mid_selected = Mid::Reg;
+        
         
         EmuState { 
             machine, 
             ins, reg, csr, mem, pc, 
             mode, selected, mid_selected,
-            code_len,
+            page_selected, code_len,
+            machine_info,
         }
     }
 
     pub fn update_data(&mut self) {
-        self.ins.list = self.machine.inspect_ins(DRAM_BASE_ADDR, self.code_len);
+        let (_, dram_base, page_size) = self.machine_info.get_info();
+        let page_base = dram_base + (self.page_selected * page_size) as u32;
+
         self.reg.list = self.machine.inspect_regs().into_iter().collect();
         self.csr.list = self.machine.inspect_csrs();
-        self.mem.list = self.machine.inspect_mem(DRAM_BASE_ADDR, PAGE_SIZE);
+        self.mem.list = self.machine.inspect_mem(page_base, page_size);
         self.pc = self.machine.inspect_pc();
     }
 
@@ -206,6 +214,26 @@ impl <'a, D: DebugInterface> EmuState<'a, D> {
                 };
                 self.mem.list_state.select(Some(self.mem.current_select));
             },
+        }
+    }
+
+    pub fn prev_page(&mut self) {
+        let (_, dram_base, page_size) = self.machine_info.get_info();
+
+        if self.page_selected != 0 {
+            self.page_selected -= 1;
+            let page_base = dram_base + (self.page_selected * page_size) as u32;
+            self.mem.list = self.machine.inspect_mem(page_base, page_size);
+        }
+    }
+
+    pub fn next_page(&mut self) {
+        let (dram_size, dram_base, page_size) = self.machine_info.get_info();
+    
+        if self.page_selected < dram_size / page_size {
+            self.page_selected += 1;
+            let page_base = dram_base + (self.page_selected * page_size) as u32;
+            self.mem.list = self.machine.inspect_mem(page_base, page_size);
         }
     }
 
