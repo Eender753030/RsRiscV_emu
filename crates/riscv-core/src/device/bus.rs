@@ -62,7 +62,7 @@ impl SystemBus {
 
         device.read_bytes(real_addr, len, &mut four_bytes[..len])?;
 
-        if is_signed && (four_bytes.last().unwrap() & 0x80 != 0) {
+        if is_signed && (four_bytes[len - 1] & 0x80 != 0) {
             four_bytes[len..].fill(0xff);
         }
 

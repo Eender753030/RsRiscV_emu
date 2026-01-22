@@ -141,10 +141,9 @@ impl Device for Memory {
         while start < size {
             let p_start = curr_addr % PAGE_SIZE;
             let remain = PAGE_SIZE - p_start;
-            let len = std::cmp::min(des.len() - start, remain);
+            let len = std::cmp::min(size - start, remain);
 
             let page = self.translate(curr_addr);
-
             match page {
                 None => return Err(Exception::LoadAccessFault),
                 Some(p) => des[start..start + len].copy_from_slice(&p[p_start..p_start + len]),
@@ -166,7 +165,7 @@ impl Device for Memory {
         while start < size {
             let p_start = curr_addr % PAGE_SIZE;
             let remain = PAGE_SIZE - p_start;
-            let len = std::cmp::min(src.len() - start, remain);
+            let len = std::cmp::min(size - start, remain);
 
             let page = self.translate_mut(curr_addr);
 

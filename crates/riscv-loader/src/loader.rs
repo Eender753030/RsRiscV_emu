@@ -83,8 +83,8 @@ fn load_elf<P: AsRef<Path>>(filepath: &P) -> Result<LoadInfo, LoadError> {
                 let file_size = seg.p_filesz as usize;
                 let offset = seg.p_offset as usize;
                 
-                let is_code = (seg.p_flags & (abi::PF_R |abi::PF_X)) != 0;
-                let is_data = (seg.p_flags & (abi::PF_R |abi::PF_W)) != 0;
+                let is_code = (seg.p_flags & !(abi::PF_R | abi::PF_X)) == 0;
+                let is_data = (seg.p_flags & !(abi::PF_R | abi::PF_W)) == 0;
 
                 if file_size > 0 {
                     let data = file_data[offset..offset + file_size].to_vec();

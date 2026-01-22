@@ -25,9 +25,9 @@ pub enum Instruction {
     Zifencei(ZifenceiOp, InstructionData),
 }
 
-impl Instruction {
-    pub fn to_string(&self) -> String {       
-        match self {
+impl std::fmt::Display for Instruction {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {   
+        f.pad(&match self {
             Instruction::Base(op, data) => {
                 if op.is_itype_ar() {
                     format!("{:<7} x{}, x{}, {}", op, data.rd, data.rs1, data.imm)
@@ -63,7 +63,7 @@ impl Instruction {
             },
             Instruction::Ziscr(op, data) => {
                 if op.is_csr() {
-                    let csr_str = CsrAddr::try_from(data.imm)
+                    let csr_str = CsrAddr::try_from(data.imm as u32 & 0xfff)
                         .map(|addr| addr.to_string())
                         .unwrap_or_else(|addr| format!("{:#x}",addr));
 
@@ -75,7 +75,7 @@ impl Instruction {
             Instruction::Zifencei(op, _) => {
                 format!("{:<7}", op)
             }
-        }
+        })
     }
 }
 

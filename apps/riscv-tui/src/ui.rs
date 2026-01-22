@@ -27,9 +27,9 @@ const EMULATE_HINT_MESSAGE: &str = "Q: Leave   TAB: Change mode    S: Single ste
 // const CALIFORNIA_GOLD: (u8, u8, u8) = (253, 181, 21);
 
 pub fn tui_loop(machine: &mut RiscV, code: &Vec<u8>, addr: u32) -> Result<()> {
-    let mut emu_terminal = terminal::EmuTerminal::new()?;
     let mut emu_state = EmuState::new(machine, code.len() / 4);
-
+    let mut emu_terminal = terminal::EmuTerminal::new()?;
+    
     loop {
         emu_terminal.draw(ui, &mut emu_state)?;
 
@@ -52,7 +52,7 @@ pub fn tui_loop(machine: &mut RiscV, code: &Vec<u8>, addr: u32) -> Result<()> {
                 }
             },
             EmuMode::Stay =>  {
-                match key::poll_key_event(Duration::from_mins(100))? {
+                match key::poll_key_event(Duration::from_millis(100))? {
                     KeyControl::Quit => break Ok(()),
                     KeyControl::ChangeMid => emu_state.change_mid(),
                     KeyControl::ChangeMode => {
@@ -80,6 +80,15 @@ pub fn tui_loop(machine: &mut RiscV, code: &Vec<u8>, addr: u32) -> Result<()> {
                 }
             },
             EmuMode::Running => {  
+                match key::poll_key_event(Duration::from_millis(16))? {
+                    KeyControl::Quit => break Ok(()),
+                    KeyControl::RunToEnd => emu_state.mode = EmuMode::Stay,
+                    KeyControl::ChangeMode => {
+                        emu_state.observation_mode_selected();
+                        emu_state.mode = EmuMode::Observation;
+                    }
+                    _ => {},
+                }
                 if (emu_state.pc - DRAM_BASE_ADDR) as usize >= code.len() {
                     emu_state.mode = EmuMode::Stay;
                 } else {

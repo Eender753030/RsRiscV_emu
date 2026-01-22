@@ -131,11 +131,11 @@ impl Cpu {
             Rv32iOp::Or => self.regs.write(data.rd, Alu::or(rs1_data, rs2_data)),
             Rv32iOp::And => self.regs.write(data.rd, Alu::and(rs1_data, rs2_data)),
 
-            Rv32iOp::Lb => self.regs.write(data.rd, Lsu::load(&mut self.bus, rs1_data, data.imm, 1)?),
-            Rv32iOp::Lh => self.regs.write(data.rd, Lsu::load(&mut self.bus, rs1_data, data.imm, 2)?),
+            Rv32iOp::Lb => self.regs.write(data.rd, Lsu::load_signed(&mut self.bus, rs1_data, data.imm, 1)?),
+            Rv32iOp::Lh => self.regs.write(data.rd, Lsu::load_signed(&mut self.bus, rs1_data, data.imm, 2)?),
             Rv32iOp::Lw => self.regs.write(data.rd, Lsu::load(&mut self.bus, rs1_data, data.imm, 4)?),
-            Rv32iOp::Lbu => self.regs.write(data.rd, Lsu::load_signed(&mut self.bus, rs1_data, data.imm, 1)?),
-            Rv32iOp::Lhu => self.regs.write(data.rd, Lsu::load_signed(&mut self.bus, rs1_data, data.imm, 2)?),
+            Rv32iOp::Lbu => self.regs.write(data.rd, Lsu::load(&mut self.bus, rs1_data, data.imm, 1)?),
+            Rv32iOp::Lhu => self.regs.write(data.rd, Lsu::load(&mut self.bus, rs1_data, data.imm, 2)?),
 
             Rv32iOp::Sb => Lsu::store(&mut self.bus, rs1_data, rs2_data, data.imm, 1)?,
             Rv32iOp::Sh => Lsu::store(&mut self.bus, rs1_data, rs2_data, data.imm, 2)?,
@@ -160,7 +160,7 @@ impl Cpu {
             },
 
             Rv32iOp::Lui => self.regs.write(data.rd, data.imm as u32),
-            Rv32iOp::Auipc => self.regs.write(data.rd, self.pc.get() + data.imm as u32),
+            Rv32iOp::Auipc => self.regs.write(data.rd, self.pc.get().wrapping_add(data.imm as u32)),
 
             Rv32iOp::Fence => {},
 

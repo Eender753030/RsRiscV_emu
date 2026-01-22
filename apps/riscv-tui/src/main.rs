@@ -39,8 +39,6 @@ fn main() -> Result<()> {
     // Go into the TUI display loop
     ui::tui_loop(&mut machine, code, *u32)?;
 
-    let _ = machine.step();
-
     if cfg!(debug_assertions) {
         println!("{:?}", machine);
     }   
