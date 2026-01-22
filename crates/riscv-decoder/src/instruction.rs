@@ -58,7 +58,7 @@ impl Instruction {
                 } else if op.is_utype() {
                     format!("{:<7} x{}, {:#x}", op, data.rd, (data.imm as u32) >> 12)
                 } else { // rtype
-                    format!("{:<7} x{}, x{}, {}", op, data.rd, data.rs1, data.rs2)
+                    format!("{:<7} x{}, x{}, x{}", op, data.rd, data.rs1, data.rs2)
                 }
             },
             Instruction::Ziscr(op, data) => {
@@ -87,7 +87,7 @@ fn check_fence(data: i32) -> String {
     
     for _ in 0..4 {
         let mode = set.next().unwrap();
-        if (data & mask) == 1 {
+        if (data & mask) != 0 {
             output.push(mode);
         }
         mask >>= 1;

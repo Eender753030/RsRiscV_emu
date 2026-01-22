@@ -14,6 +14,10 @@ impl PC {
         self.pointer
     }
 
+    pub fn set(&mut self, pointer: u32) {
+        self.pointer = pointer;
+    }
+
     pub fn reset(&mut self) {
         self.pointer = INIT_RAM_START;
     }

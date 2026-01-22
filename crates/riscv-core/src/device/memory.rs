@@ -4,11 +4,11 @@ use std::ops::{Deref, DerefMut};
 
 use crate::exception::Exception;
 
-use super::bus::Bus;
+use super::Device;
 
 pub const PAGE_SIZE: usize = 4096;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct Page {
     space: [u8; PAGE_SIZE],
 }
@@ -35,7 +35,7 @@ impl DerefMut for Page {
 
 /// Memory structure. Store `u8` data as Little Endian.
 /// Unit of `size` is byte
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct Memory {
     pub size: usize,
     pages: Vec<Option<Box<Page>>>,
@@ -113,7 +113,7 @@ impl Default for Memory {
     }
 }
 
-impl Bus for Memory {
+impl Device for Memory {
     fn read_byte(&self, addr: u32) -> Result<u8, Exception> {
         let addr = addr as usize;
 
@@ -185,7 +185,7 @@ mod memory_tests {
     use crate::device::memory::_2GB;
     use crate::device::memory::PAGE_SIZE;
 
-    use super::Bus;
+    use super::Device;
     use super::Memory;
 
     #[test]

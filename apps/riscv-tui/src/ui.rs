@@ -26,7 +26,7 @@ const EMULATE_HINT_MESSAGE: &str = "Q: Leave   TAB: Change mode    S: Single ste
 // const BERKELEY_BLUE: (u8, u8, u8) = (0, 50, 98);
 // const CALIFORNIA_GOLD: (u8, u8, u8) = (253, 181, 21);
 
-pub fn tui_loop(machine: &mut RiscV, code: &Vec<u8>) -> Result<()> {
+pub fn tui_loop(machine: &mut RiscV, code: &Vec<u8>, addr: u32) -> Result<()> {
     let mut emu_terminal = terminal::EmuTerminal::new()?;
     let mut emu_state = EmuState::new(machine, code.len() / 4);
 
@@ -54,14 +54,16 @@ pub fn tui_loop(machine: &mut RiscV, code: &Vec<u8>) -> Result<()> {
             EmuMode::Stay =>  {
                 match key::poll_key_event(Duration::from_mins(100))? {
                     KeyControl::Quit => break Ok(()),
+                    KeyControl::ChangeMid => emu_state.change_mid(),
                     KeyControl::ChangeMode => {
                         emu_state.observation_mode_selected();
                         emu_state.mode = EmuMode::Observation;
                     }
                     KeyControl::Reset => {
                         emu_state.machine.reset();
-                        emu_state.machine.fisrt_load(code)?;
+                        emu_state.machine.load(addr, code)?;
                         emu_state.update_data();
+                        emu_state.running_mode_selected_update();
                     },
                     KeyControl::Step => {
                         if let Err (e) = emu_state.machine.step() {
@@ -71,6 +73,7 @@ pub fn tui_loop(machine: &mut RiscV, code: &Vec<u8>) -> Result<()> {
                             }
                         }
                         emu_state.update_data();
+                        emu_state.running_mode_selected_update();
                     },
                     KeyControl::RunToEnd => emu_state.mode = EmuMode::Running,
                     _ => {},
@@ -87,6 +90,7 @@ pub fn tui_loop(machine: &mut RiscV, code: &Vec<u8>) -> Result<()> {
                         }
                     }
                     emu_state.update_data();
+                    emu_state.running_mode_selected_update();
                 }
             }
         }
@@ -152,8 +156,8 @@ fn render_ins<D: DebugInterface>(f: &mut Frame, area: Rect, emu_state: &mut EmuS
         };
         ListItem::new(format!("{} {:#010x}: {}", marker, addr, ins))
     }).collect();
-    let highlight_color = match &emu_state.selected {
-        Selected::Ins => (Color::Rgb(242, 242, 242), Color::Rgb(0, 50, 98)),
+    let highlight_color = match (&emu_state.selected , &emu_state.mode) {
+        (Selected::Ins, EmuMode::Observation) => (Color::Rgb(242, 242, 242), Color::Rgb(0, 50, 98)),
         _ => (Color::Rgb(0, 50, 98), Color::Rgb(253, 181, 21))
     };
 

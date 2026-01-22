@@ -8,3 +8,4 @@ members = [
 [workspace.dependencies]
 riscv-core = {path = "crates/riscv-core"}
 riscv-decoder = {path = "crates/riscv-decoder"}
+riscv-loader = {path = "crates/riscv-loader"}

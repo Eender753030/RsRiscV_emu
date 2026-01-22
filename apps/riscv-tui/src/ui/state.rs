@@ -1,6 +1,6 @@
 use ratatui::widgets::ListState;
 
-use riscv_core::debug::{DebugInterface, MachineInfo};
+use riscv_core::{constance::DRAM_BASE_ADDR, debug::{DebugInterface, MachineInfo}};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Mid {
@@ -105,13 +105,17 @@ impl <'a, D: DebugInterface> EmuState<'a, D> {
 
     pub fn running_mode_selected(&mut self) {
         match self.selected {
-            Selected::Ins => self.ins.list_state.select(None),
+            Selected::Ins => self.ins.list_state.select(Some((self.pc - DRAM_BASE_ADDR) as usize)),
             Selected::Mid(m) => match m {
                 Mid::Reg => self.reg.list_state.select(None),
                 Mid::Csr => self.csr.list_state.select(None),
             }
             Selected::Mem => self.mem.list_state.select(None)
         }
+    }
+
+    pub fn running_mode_selected_update(&mut self) {
+        self.ins.list_state.select(Some((self.pc - DRAM_BASE_ADDR) as usize / 4))
     }
 
     pub fn observation_mode_selected(&mut self) {

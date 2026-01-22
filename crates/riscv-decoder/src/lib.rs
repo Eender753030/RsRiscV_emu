@@ -3,7 +3,7 @@ pub mod instruction;
 mod opcode;
 mod bits_op;
 mod csr_addr;
-pub mod error;
+mod error;
 pub mod prelude;
 
-
+pub use error::DecodeError;

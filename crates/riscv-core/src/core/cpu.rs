@@ -2,7 +2,8 @@ use riscv_decoder::prelude::*;
 
 use super::{PC, RegisterFile};
 use crate::core::csr::CsrFile;
-use crate::device::bus::{Bus, SystemBus, DRAM_BASE_ADDR};
+use crate::device::bus::SystemBus;
+use crate::device::Device;
 use crate::engine::*;
 use crate::error::RiscVError;
 use crate::exception::Exception;
@@ -30,18 +31,24 @@ impl std::fmt::Debug for Cpu {
 }
 
 impl Cpu {
-    pub fn fisrt_load(&mut self, code: &[u8]) -> Result<(), RiscVError> {
-        if let Err(_) = self.bus.write_bytes(DRAM_BASE_ADDR, code.len(), code) {
-            Err(RiscVError::LoadCodeFailed)
+    pub fn load(&mut self, addr: u32, data: &[u8]) -> Result<(), RiscVError> {
+        if let Err(_) = self.bus.write_bytes(addr, data.len(), data) {
+            Err(RiscVError::LoadFailed)
         } else {
             Ok(())
         }
     }
 
-    pub fn load(&mut self, addr: u32, code: &[u8]) {
-        if let Err(e) = self.bus.write_bytes(addr, code.len(), code) {
-            self.trap_handle(e)
+    pub fn set_pc(&mut self, entry: u32) {
+        self.pc.set(entry);
+    }
+
+    pub fn set_mem_zero(&mut self, addr: u32, size: usize) -> Result<(), RiscVError> {
+        for i in 0..size {
+            self.bus.write_byte(addr + i as u32, 0)
+                .map_err(|_| RiscVError::BssInitFailed)?
         }
+        Ok(())
     }
 
     pub fn run(&mut self) -> Result<(), RiscVError> {
@@ -157,10 +164,8 @@ impl Cpu {
 
             Rv32iOp::Fence => {},
 
-            Rv32iOp::Ecall => {
-                return Err(Exception::EnvironmentCallFromMMode);
-            },
-            Rv32iOp::Ebreak => {},
+            Rv32iOp::Ecall => return Err(Exception::EnvironmentCallFromMMode),
+            Rv32iOp::Ebreak => return Err(Exception::Breakpoint),
         }
 
         if branch {
@@ -240,8 +245,6 @@ impl Cpu {
         self.csrs.reset();
         self.pc.reset();
         self.bus.reset_ram();
-        
-        
     }
 }
 

@@ -1,12 +1,12 @@
 use thiserror::Error;
 
-const USAGE: &str = "Usage: cargo run <binary_file>";
+const USAGE: &str = "Usage: cargo run <.bin/.elf>";
 
 #[derive(Error, Debug)]
 pub enum CliError {
-    #[error("CLI: No input binary file\n{}", USAGE)]
-    NoInputBinary,
+    #[error("No input file\n{}", USAGE)]
+    NoInputFile,
 
-    #[error("CLI: Too many input file\n{}", USAGE)]
+    #[error("Too many input file\n{}", USAGE)]
     TooManyArgument,
 }

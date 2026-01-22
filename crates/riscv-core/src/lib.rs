@@ -13,4 +13,7 @@ pub mod constance {
     pub use crate::device::bus::DRAM_BASE_ADDR;
 }
 
+pub use error::RiscVError;
+pub use exception::Exception;
+
 pub mod prelude;
