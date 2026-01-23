@@ -19,9 +19,9 @@ use key::KeyControl;
 use state::{EmuState, EmuMode};
 
 
-const HEADER: &str = "RsRisc-V Emulator v0.0.1";
-const OBSERVATION_HINT_MESSAGE: &str = "Q: Leave    TAB: Switch mode    Up/Down: Scroll    Left/Right: Change panel";
-const EMULATE_HINT_MESSAGE: &str = "Q: Leave   TAB: Change mode    S: Single step    P: Run to end    R: Reset";
+const HEADER: &str = concat!("RsRisc-V Emulator v", env!("CARGO_PKG_VERSION"));
+const OBSERVATION_HINT_MESSAGE: &str = "Q: Leave    TAB: Switch mode    Up/Down: Scroll    Left/Right: Change panel ]/[: Change Dram page";
+const EMULATE_HINT_MESSAGE: &str = "Q: Leave   TAB: Change mode    S: Single step    P: Run to end / Stop    R: Reset";
 
 // const BERKELEY_BLUE: (u8, u8, u8) = (0, 50, 98);
 // const CALIFORNIA_GOLD: (u8, u8, u8) = (253, 181, 21);

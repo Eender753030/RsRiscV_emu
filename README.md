@@ -1,20 +1,30 @@
 ![Language](https://img.shields.io/badge/language-Rust-orange.svg) ![License](https://img.shields.io/badge/license-MIT-blue.svg) ![Backend](https://img.shields.io/badge/UI-Ratatui-green.svg)
-# RsRisc-V Emu: Interactive RV32I Emulator in Rust
+# RsRisc-V Emu: Interactive RV32IM Emulator in Rust
 
-[RsRisc-V Asm here](https://github.com/Eender753030/RsRiscV_asm)
+(Not update for now) [RsRisc-V Asm here](https://github.com/Eender753030/RsRiscV_asm)
 
-## Current Key Features
-- **Core RV32I Support**: Implements the base integer instruction set (fetch, decode, execute).
-- **Live Inspection**:
-    - **Instruction View**: See the disassembled code alongside the binary.
-    - **Register View**: Monitor changes in `x0`-`x31`.
-    - **Memory View**: Inspect raw data memory dumps with hex formatting.
-- **Multiple Execution Modes**:
-    - **Observation Mode**: Browse memory/registers without executing code.
-    - **Emulate Mode**: Step-by-step execution (`S`), Execute the full binary until completion or interrupt (`P`), and Reset (`R`) capability.
+## Key Features
+- **ISA Support**:
+    - **RV32IM Core**: Implements Base Integer (I) and Multiply/Divide (M) extensions.
+    - **Standard Extensions**: Supports **Zicsr** (Control and Status Register) and **Zifencei**.
+    - **Privileged Mode**: Implements **Machine Mode (M-Mode)** with precise Exception & Interrupt handling.
+    - **Compliance**: Passes official **[riscv-tests](https://github.com/riscv-software-src/riscv-tests)** (success in `rv32ui` and `rv32um` suites).
+    
+- **System & Peripherals**:
+    - **Memory**: **2GB** Virtualized/Demand-Paged DRAM (base address `0x8000_0000`).
+    - **UART**: Memory-mapped serial output at `0x1000_0000` (mapped to host stdout).
+
+- **Smart Loader**:
+    - **ELF Support**: Automatically parses ELF headers, loads segments (text/data), and initializes BSS.
+    - **Raw Binary**: Fallback support for flat binary files.
+
+- **Interactive TUI**:
+    - **Live Disassembly**: Real-time instruction decoding and pipeline visualization.
+    - **Dual Register View**: Toggle between **General Purpose Registers (x0-x31)** and **CSRs** (mstatus, mepc, etc.).
+    - **Deep Memory Inspection**: Browse the entire 2GB memory space with paging controls.
 
 ## Demo
-![RsRisc-V Demo](./assets/demo.gif)
+![RsRisc-V Demo](./assets/v0.1.0_demo.gif)
 
 ## Quick Start
 ### Prerequisites
@@ -41,7 +51,7 @@ cargo run --release <path_to_binary_file>
 # Example
 cargo run --release ./test
 ```
-**Note**: The input file must be a raw binary containing RISC-V RV32I machine code (Little Endian).
+**Note**: The input file can be a standard **ELF** file or a raw binary (Little Endian).
 
 ## 🎮 Controls & Key Bindings
 
@@ -51,8 +61,10 @@ The UI is designed to be keyboard-centric for efficiency.
 | :--- | :--- | :--- | :--- |
 | **General** | `Tab` | **Switch Mode** | Toggle between **Observation** (Browse) and **Emulate** (Debug) modes. |
 |             | `Q` | **Quit** | Exit the application immediately. |
-| **Navigation**<br>*(Observation)* | `←` / `→` | **Change Panel** | Move focus between Instruction, Register, and Memory panels. |
+| **Navigation**<br>*(Observation)* | `←` / `→` | **Change Panel** | Move focus between Instruction, Register/CSR, and Memory panels. |
 | | `↑` / `↓` | **Scroll** | Scroll through the lists in the currently active panel. |
+| | `C` | **Toggle View** | Switch between **GPR (x0-x31)** and **CSR** view in the Register panel. |
+| | `[` / `]` | **Page Mem** | Navigate to Previous/Next Memory Page (4KB). |
 | **Debug**<br>*(Emulate)* | `S` | **Step** | Execute the next instruction (Single-step). |
 | | `P` | **Run to End** | Continuously execute instructions until program exit or error. |
 | | `R` | **Reset** | Reset PC to initial state and clear registers/memory. |
