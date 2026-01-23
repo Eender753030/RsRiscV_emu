@@ -32,7 +32,7 @@ impl std::fmt::Debug for Cpu {
 
 impl Cpu {
     pub fn load(&mut self, addr: u32, data: &[u8]) -> Result<(), RiscVError> {
-        if let Err(_) = self.bus.write_bytes(addr, data.len(), data) {
+        if self.bus.write_bytes(addr, data.len(), data).is_err() {
             Err(RiscVError::LoadFailed)
         } else {
             Ok(())
@@ -98,6 +98,9 @@ impl Cpu {
                 }
             },
             Instruction::Zifencei(_, _) => {},
+            Instruction::M(op, data) => {
+                self.execute_m(op, data);
+            }
         }
         self.pc.step();
         Ok(())
@@ -236,6 +239,24 @@ impl Cpu {
         Ok(false)
     }
 
+    fn execute_m(&mut self, op: MOp, data: InstructionData) {
+        let rs1_data = self.regs[data.rs1];
+        let rs2_data = self.regs[data.rs2];
+        
+        self.regs.write(data.rd, 
+            match op {
+                MOp::Mul => Alu::mul(rs1_data, rs2_data),
+                MOp::Mulh => Alu::mulh(rs1_data, rs2_data),
+                MOp::Mulhu => Alu::mulh_unsigned(rs1_data, rs2_data),
+                MOp::Mulhsu => Alu::mulh_signed_unsigned(rs1_data, rs2_data),
+                MOp::Div => Alu::div(rs1_data, rs2_data),
+                MOp::Divu => Alu::div_unsigned(rs1_data, rs2_data),
+                MOp::Rem => Alu::rem(rs1_data, rs2_data),
+                MOp::Remu => Alu::rem_unsigned(rs1_data, rs2_data),
+            }
+        )
+    }
+
     fn trap_handle(&mut self, except: Exception) {
         self.pc.directed_addressing(self.csrs.trap_entry(self.pc.get(), except));
     }
@@ -274,7 +295,7 @@ impl DebugInterface for Cpu {
                 )
                 .map(|ins| ins_list.push((curr_addr, ins.to_string())));
 
-            if let Err(_) = res {
+            if res.is_err() {
                 ins_list.push((curr_addr, "(Unknown)".to_string()));
             }
 

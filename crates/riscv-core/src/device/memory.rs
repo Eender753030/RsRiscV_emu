@@ -96,12 +96,9 @@ impl Memory {
     fn translate_mut(&mut self, addr: usize) -> &mut Page {
         let idx = addr / PAGE_SIZE;
 
-        if self.pages[idx].is_none() {
-            self.pages[idx].replace(Box::new(Page::default()));
-        }
-
-        // Safe
-        self.pages[idx].as_mut().unwrap()
+        self.pages[idx].get_or_insert_with(|| 
+            Box::new(Page::default())
+        )
     }
 }
 

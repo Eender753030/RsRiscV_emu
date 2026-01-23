@@ -44,4 +44,58 @@ impl Alu {
     pub fn set_less_than_unsigned(data: u32, cmp_data: u32) -> u32 {
         (data < cmp_data).into()
     }
+
+    pub fn mul(data1: u32, data2: u32) -> u32 {
+        (data1 as i32 as i64)
+            .wrapping_mul(data2 as i32 as i64) as u32
+    }
+
+    pub fn mulh(data1: u32, data2: u32) -> u32 {
+        ((data1 as i32 as i64)
+            .wrapping_mul(data2 as i32 as i64) >> 32) as u32
+    }
+
+    pub fn mulh_unsigned(data1: u32, data2: u32) -> u32 {
+        ((data1 as u64)
+            .wrapping_mul(data2 as u64) >> 32) as u32
+    }
+    
+    pub fn mulh_signed_unsigned(data1: u32, data2: u32) -> u32 {
+        ((data1 as i32 as i64)
+            .wrapping_mul(data2 as i64) >> 32) as u32
+    }
+    
+    pub fn div(data1: u32, data2: u32) -> u32 {
+        if data2 == 0 {
+            u32::MAX
+        } else {
+            (data1 as i32)
+                .wrapping_div(data2 as i32) as u32
+        }
+    }
+
+    pub fn div_unsigned(data1: u32, data2: u32) -> u32 {
+        if data2 == 0 {
+            u32::MAX
+        } else {
+            data1.wrapping_div(data2) 
+        }
+    }
+
+    pub fn rem(data1: u32, data2: u32) -> u32 {
+        if data2 == 0 {
+            data1
+        } else {
+            (data1 as i32)
+                .wrapping_rem(data2 as i32) as u32
+        }
+    }
+
+    pub fn rem_unsigned(data1: u32, data2: u32) -> u32 {
+        if data2 == 0 {
+            data1
+        } else {
+            data1.wrapping_rem(data2) 
+        }
+    }
 }

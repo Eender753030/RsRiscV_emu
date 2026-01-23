@@ -40,7 +40,7 @@ impl std::fmt::Display for CsrAddr {
 impl TryFrom<u32> for CsrAddr {
     type Error = u32;
     fn try_from(value: u32) -> Result<Self, Self::Error> {
-        match value as u32 {
+        match value {
             0x000 => Ok(CsrAddr::Ustatus),
             0x180 => Ok(CsrAddr::Satp),
             0x300 => Ok(CsrAddr::Mstatus),

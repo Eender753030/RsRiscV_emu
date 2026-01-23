@@ -13,9 +13,7 @@ pub struct LoadInfo {
 
 impl LoadInfo {
     pub(crate) fn new(pc_entry: u32, code: Vec<u8>, code_addr: u32) -> Self {
-        let mut code_vec = Vec::with_capacity(1);
-
-        code_vec.push((code, code_addr));
+        let code_vec = vec![(code, code_addr)];
 
         LoadInfo {
             pc_entry, code: code_vec,
