@@ -1,13 +1,15 @@
 //! Definition of enum corresponding to opcode
 mod rv32i;
+mod m;
 mod zicsr;
 mod zifencei;
-mod m;
+mod privileged;
 
 pub use rv32i::Rv32iOp;
+pub use m::MOp;
 pub use zicsr::ZicsrOp;
 pub use zifencei::ZifenceiOp;
-pub use m::MOp;
+pub use privileged::PrivilegeOp;
 
 use crate::csr_addr::CsrAddr;
 
@@ -23,9 +25,11 @@ pub struct InstructionData {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Instruction {
     Base(Rv32iOp, InstructionData),
+    Privileged(PrivilegeOp),
+    M(MOp, InstructionData),
     Ziscr(ZicsrOp, InstructionData),
     Zifencei(ZifenceiOp, InstructionData),
-    M(MOp, InstructionData),
+    
 }
 
 impl std::fmt::Display for Instruction {
@@ -64,23 +68,22 @@ impl std::fmt::Display for Instruction {
                     format!("{:<7} x{}, x{}, x{}", op, data.rd, data.rs1, data.rs2)
                 }
             },
-            Instruction::Ziscr(op, data) => {
-                if op.is_csr() {
-                    let csr_str = CsrAddr::try_from(data.imm as u32 & 0xfff)
-                        .map(|addr| addr.to_string())
-                        .unwrap_or_else(|addr| format!("{:#x}",addr));
-
-                    format!("{:<7} x{}, {}, x{}", op, data.rd, csr_str, data.rs1)
-                } else {
-                    format!("{:<7}", op)
-                }
-            },
-            Instruction::Zifencei(op, _) => {
+            Instruction::Privileged(op) => {
                 format!("{:<7}", op)
-            },
+            }
             Instruction::M(op, data) => {
                 format!("{:<7} x{}, x{}, x{}", op, data.rd, data.rs1, data.rs2)
-            }
+            },
+            Instruction::Ziscr(op, data) => {
+                let csr_str = CsrAddr::try_from(data.imm as u32 & 0xfff)
+                    .map(|addr| addr.to_string())
+                    .unwrap_or_else(|addr| format!("{:#x}",addr));
+
+                format!("{:<7} x{}, {}, x{}", op, data.rd, csr_str, data.rs1)       
+            },
+            Instruction::Zifencei(op, _)=> {
+                format!("{:<7}", op)
+            },
         })
     }
 }

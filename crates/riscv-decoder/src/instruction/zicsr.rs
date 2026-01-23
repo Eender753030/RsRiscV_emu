@@ -2,7 +2,7 @@
 pub enum ZicsrOp {
     Csrrw, Csrrs, Csrrc,
     Csrrwi, Csrrsi, Csrrci,
-    Mret,
+    
 }
 
 impl ZicsrOp {
@@ -17,25 +17,6 @@ impl ZicsrOp {
             _ => None
         }
     }
-
-    pub(crate) fn decode_ret(raw: u32) -> Option<ZicsrOp> {
-        match raw {
-            0x30200073 => Some(ZicsrOp::Mret),
-            _ => None
-        }
-    }
-
-    pub(crate) fn is_csr(&self) -> bool {
-        matches!(self, 
-            ZicsrOp::Csrrw | ZicsrOp::Csrrs | ZicsrOp::Csrrc |
-            ZicsrOp::Csrrwi | ZicsrOp::Csrrsi | ZicsrOp::Csrrci
-        )
-    }
-
-    #[allow(unused)]
-    pub(crate) fn is_ret(&self) -> bool {
-        self == &ZicsrOp::Mret
-    }
 }
 
 impl std::fmt::Display for ZicsrOp {
@@ -44,7 +25,6 @@ impl std::fmt::Display for ZicsrOp {
             match self {
                 ZicsrOp::Csrrw => "csrrw", ZicsrOp::Csrrs => "csrrs", ZicsrOp::Csrrc => "csrrc",
                 ZicsrOp::Csrrwi => "csrrwi", ZicsrOp::Csrrsi => "csrrsi", ZicsrOp::Csrrci => "csrrci",
-                ZicsrOp::Mret => "mret",
             }
         )
     }

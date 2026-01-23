@@ -35,12 +35,12 @@ pub fn decode(raw: u32) -> Result<Instruction, DecodeError> {
             
             if let Some(op) = Rv32iOp::decode_itype(itype, funct3, funct7, imm as u16) {
                 Ok(Instruction::Base(op, InstructionData { rd, rs1, rs2, imm }))
-            } else if let Some(op) = ZicsrOp::decode(funct3).or_else(||
-                ZicsrOp::decode_ret(raw)
-            ) {
+            } else if let Some(op) = ZicsrOp::decode(funct3) {
                 Ok(Instruction::Ziscr(op, InstructionData { rd, rs1, rs2, imm }))
             } else if let Some(op) =  ZifenceiOp::decode(funct3) {
                 Ok(Instruction::Zifencei(op, InstructionData { rd, rs1, rs2, imm }))
+            }else if let Some(op) =  PrivilegeOp::decode(raw) {
+                Ok(Instruction::Privileged(op))    
             } else {
                 Err(DecodeError::UnknownInstruction(itype, raw))
             }
