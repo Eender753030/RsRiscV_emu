@@ -75,25 +75,26 @@ impl Rv32iOp {
     }
 
     pub(crate) fn decode_rtype(funct3: u8, funct7: u8) -> Option<Rv32iOp> {
-        match funct3 {
-            0x0 => match funct7 {
-                0x00 => Some(Rv32iOp::Add),
-                0x20 => Some(Rv32iOp::Sub),
+        match funct7 {
+            0x00 => match funct3 {
+                0x0 => Some(Rv32iOp::Add),
+                0x1 => Some(Rv32iOp::Sll),
+                0x2 => Some(Rv32iOp::Slt),
+                0x3 => Some(Rv32iOp::Sltu),
+                0x4 => Some(Rv32iOp::Xor),
+                0x5 => Some(Rv32iOp::Srl),
+                0x6 => Some(Rv32iOp::Or),
+                0x7 => Some(Rv32iOp::And),
                 _ => None,
+            }
+            0x20 => match funct3 {
+                0x0 => Some(Rv32iOp::Sub),
+                0x5 => Some(Rv32iOp::Sra),
+                _ => None
             },
-            0x1 => Some(Rv32iOp::Sll),
-            0x2 => Some(Rv32iOp::Slt),
-            0x3 => Some(Rv32iOp::Sltu),
-            0x4 => Some(Rv32iOp::Xor),
-            0x5 => match funct7 {
-                0x00 => Some(Rv32iOp::Srl),
-                0x20 => Some(Rv32iOp::Sra),
-                _ => None,
-            },
-            0x6 => Some(Rv32iOp::Or),
-            0x7 => Some(Rv32iOp::And),
             _ => None,
         }
+        
     }
 
     pub(crate) fn decode_stype(funct3: u8) -> Option<Rv32iOp> {
