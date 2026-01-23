@@ -7,6 +7,8 @@ pub enum Exception {
     LoadAddressMisaligned,
     LoadAccessFault(u32),
     StoreAddressMisaligned,
+    EnvironmentCallFromUMode,
+    EnvironmentCallFromSMode,
     EnvironmentCallFromMMode,
 }
 
@@ -20,6 +22,8 @@ impl From<Exception> for u32 {
             Exception::LoadAddressMisaligned => 4,
             Exception::LoadAccessFault(_) => 5,
             Exception::StoreAddressMisaligned => 6,
+            Exception::EnvironmentCallFromUMode => 8,
+            Exception::EnvironmentCallFromSMode => 9,
             Exception::EnvironmentCallFromMMode => 11,
         }
     }

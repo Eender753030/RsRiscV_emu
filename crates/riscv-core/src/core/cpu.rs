@@ -170,7 +170,13 @@ impl Cpu {
 
             Rv32iOp::Fence => {},
 
-            Rv32iOp::Ecall => return Err(Exception::EnvironmentCallFromMMode),
+            Rv32iOp::Ecall => {
+                return Err(match self.mode {
+                    PrivilegeMode::User => Exception::EnvironmentCallFromUMode,
+                    PrivilegeMode::Supervisor => Exception::EnvironmentCallFromSMode,
+                    PrivilegeMode::Machine => Exception::EnvironmentCallFromMMode,
+                });
+            },
             Rv32iOp::Ebreak => return Err(Exception::Breakpoint),
         }
 
