@@ -290,6 +290,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "48c757948c5ede0e46177b7add2e67155f70e33c07fea8284df6576da70b3719"
 
 [[package]]
+name = "elf"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "55dd888a213fc57e957abf2aa305ee3e8a28dbe05687a251f33b637cd46b0070"
+
+[[package]]
 name = "equivalent"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -587,6 +593,27 @@ dependencies = [
  "log",
  "wasi",
  "windows-sys",
+]
+
+[[package]]
+name = "modular-bitfield"
+version = "0.13.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2956e537fc68236d2aa048f55704f231cc93f1c4de42fe1ecb5bd7938061fc4a"
+dependencies = [
+ "modular-bitfield-impl",
+ "static_assertions",
+]
+
+[[package]]
+name = "modular-bitfield-impl"
+version = "0.13.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "59b43b4fd69e3437618106f7754f34021b831a514f9e1a98ae863cabcd8d8dad"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.111",
 ]
 
 [[package]]
@@ -955,12 +982,42 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7a2d987857b319362043e95f5353c0535c1f58eec5336fdfcf626430af7def58"
 
 [[package]]
-name = "risc-v_emulator"
+name = "riscv-core"
+version = "0.1.0"
+dependencies = [
+ "modular-bitfield",
+ "riscv-decoder",
+ "thiserror 2.0.17",
+]
+
+[[package]]
+name = "riscv-decoder"
+version = "0.1.0"
+dependencies = [
+ "thiserror 2.0.17",
+]
+
+[[package]]
+name = "riscv-disasm"
+version = "0.1.0"
+
+[[package]]
+name = "riscv-loader"
+version = "0.1.0"
+dependencies = [
+ "elf",
+ "thiserror 2.0.17",
+]
+
+[[package]]
+name = "riscv-tui"
 version = "0.1.0"
 dependencies = [
  "anyhow",
  "crossterm",
  "ratatui",
+ "riscv-core",
+ "riscv-loader",
  "thiserror 2.0.17",
 ]
 

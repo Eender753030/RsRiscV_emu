@@ -1,0 +1,14 @@
+edition = "2024"
+max_width = 100
+tab_spaces = 4
+newline_style = "Unix"
+
+merge_derives = true
+
+chain_width = 80
+
+struct_lit_width = 50
+
+match_block_trailing_comma = true
+
+array_width = 80
