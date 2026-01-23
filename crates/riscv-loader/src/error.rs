@@ -22,4 +22,16 @@ pub enum LoadError {
 
     #[error("Can not read .elf: {0}")]
     ReadElfFailed(String),
+
+    #[error("Can not get .elf section headers: {0}")]
+    GetElfSectionHeaderFailed(String),
+
+    #[error("Can not get .elf header name: {0}")]
+    GetElfSectionHeaderNameFailed(String),
+
+    #[error("Can not get .elf symbol table: {0}")]
+    GetElfSymbolFailed(String),
+
+    #[error("Can not get .elf symbol name: {0}")]
+    GetElfSymbolNameFailed(String),
 }
