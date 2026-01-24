@@ -1,6 +1,7 @@
 use riscv_decoder::prelude::*;
 
 use super::{PC, RegisterFile, CsrFile, PrivilegeMode};
+use crate::core::{Access, AccessType, Mmu};
 use crate::device::bus::SystemBus;
 use crate::device::Device;
 use crate::engine::*;
@@ -17,22 +18,10 @@ pub struct Cpu {
     bus: SystemBus,
 }
 
-impl std::fmt::Debug for Cpu {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "Cpu {{")?;
-        writeln!(f, " PC: {:#08x}", self.pc.get())?;
-        write!(f, " Registers {{")?;
-        self.regs.iter().enumerate().try_for_each(|(id, regs)|
-            write!(f, " x{}: {}", id, regs as i32)
-        )?;
-        writeln!(f, " }}")?;
-        write!(f, " {:?}", self.bus)
-    }
-}
-
 impl Cpu {
     pub fn load(&mut self, addr: u32, data: &[u8]) -> Result<(), RiscVError> {
-        if self.bus.write_bytes(addr, data.len(), data).is_err() {
+        let access = Access::new(addr, AccessType::Store);
+        if self.bus.write_bytes(access, data.len(), data).is_err() {
             Err(RiscVError::LoadFailed)
         } else {
             Ok(())
@@ -45,7 +34,8 @@ impl Cpu {
 
     pub fn set_mem_zero(&mut self, addr: u32, size: usize) -> Result<(), RiscVError> {
         for i in 0..size {
-            self.bus.write_byte(addr + i as u32, 0)
+            let access = Access::new(addr + i as u32, AccessType::Store);
+            self.bus.write_byte(access, 0)
                 .map_err(|_| RiscVError::BssInitFailed)?
         }
         Ok(())
@@ -77,7 +67,11 @@ impl Cpu {
     }
 
     fn fetch(&mut self) -> Result<u32, Exception> {
-        self.bus.read_u32(self.pc.get())
+        let va_access = Access::new(self.pc.get(), super::AccessType::Fetch);
+
+        let pa_access = Mmu::translate(va_access, self.mode, self.csrs.check_stap(), &mut self.bus)?;
+
+        self.bus.read_u32(pa_access)
     }
 
     fn decode(&self, bytes: u32) -> Result<Instruction, Exception> {
@@ -137,15 +131,15 @@ impl Cpu {
             Rv32iOp::Or => self.regs.write(data.rd, Alu::or(rs1_data, rs2_data)),
             Rv32iOp::And => self.regs.write(data.rd, Alu::and(rs1_data, rs2_data)),
 
-            Rv32iOp::Lb => self.regs.write(data.rd, Lsu::load_signed(&mut self.bus, rs1_data, data.imm, 1)?),
-            Rv32iOp::Lh => self.regs.write(data.rd, Lsu::load_signed(&mut self.bus, rs1_data, data.imm, 2)?),
-            Rv32iOp::Lw => self.regs.write(data.rd, Lsu::load(&mut self.bus, rs1_data, data.imm, 4)?),
-            Rv32iOp::Lbu => self.regs.write(data.rd, Lsu::load(&mut self.bus, rs1_data, data.imm, 1)?),
-            Rv32iOp::Lhu => self.regs.write(data.rd, Lsu::load(&mut self.bus, rs1_data, data.imm, 2)?),
+            Rv32iOp::Lb => self.regs.write(data.rd, Lsu::load_signed(&mut self.bus, rs1_data, data.imm, 1, self.mode, self.csrs.check_stap())?),
+            Rv32iOp::Lh => self.regs.write(data.rd, Lsu::load_signed(&mut self.bus, rs1_data, data.imm, 2, self.mode, self.csrs.check_stap())?),
+            Rv32iOp::Lw => self.regs.write(data.rd, Lsu::load(&mut self.bus, rs1_data, data.imm, 4, self.mode, self.csrs.check_stap())?),
+            Rv32iOp::Lbu => self.regs.write(data.rd, Lsu::load(&mut self.bus, rs1_data, data.imm, 1, self.mode, self.csrs.check_stap())?),
+            Rv32iOp::Lhu => self.regs.write(data.rd, Lsu::load(&mut self.bus, rs1_data, data.imm, 2, self.mode, self.csrs.check_stap())?),
 
-            Rv32iOp::Sb => Lsu::store(&mut self.bus, rs1_data, rs2_data, data.imm, 1)?,
-            Rv32iOp::Sh => Lsu::store(&mut self.bus, rs1_data, rs2_data, data.imm, 2)?,
-            Rv32iOp::Sw => Lsu::store(&mut self.bus, rs1_data, rs2_data, data.imm, 4)?,
+            Rv32iOp::Sb => Lsu::store(&mut self.bus, rs1_data, rs2_data, data.imm, 1, self.mode, self.csrs.check_stap())?,
+            Rv32iOp::Sh => Lsu::store(&mut self.bus, rs1_data, rs2_data, data.imm, 2, self.mode, self.csrs.check_stap())?,
+            Rv32iOp::Sw => Lsu::store(&mut self.bus, rs1_data, rs2_data, data.imm, 4, self.mode, self.csrs.check_stap())?,
 
             Rv32iOp::Beq => branch = Branch::equal(rs1_data, rs2_data),
             Rv32iOp::Bne => branch = Branch::not_equal(rs1_data, rs2_data),
@@ -305,7 +299,8 @@ impl DebugInterface for Cpu {
     fn inspect_mem(&self, addr: u32, len: usize) -> Vec<u8> {
         let mut mem: Vec<u8> = vec![0; len]; 
         // Todo: The execption debuger layout
-        let _ = self.bus.read_bytes(addr, len, &mut mem);
+        let access = Access::new(addr, AccessType::Load);
+        let _ = self.bus.read_bytes(access, len, &mut mem);
         mem
     }    
 
@@ -313,5 +308,18 @@ impl DebugInterface for Cpu {
         let (dram_size, dram_base, page_size) = self.bus.ram_info();
 
         MachineInfo::new(dram_size, dram_base, page_size)
+    }
+}
+
+impl std::fmt::Debug for Cpu {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "Cpu {{")?;
+        writeln!(f, " PC: {:#08x}", self.pc.get())?;
+        write!(f, " Registers {{")?;
+        self.regs.iter().enumerate().try_for_each(|(id, regs)|
+            write!(f, " x{}: {}", id, regs as i32)
+        )?;
+        writeln!(f, " }}")?;
+        write!(f, " {:?}", self.bus)
     }
 }
