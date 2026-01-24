@@ -187,7 +187,7 @@ impl CsrFile {
         *self = Self::default()
     }
 
-    pub fn check_stap(&self) -> Option<u32> {
+    pub fn check_satp(&self) -> Option<u32> {
         if self.satp.mode() > 0  {
             Some(self.satp.ppn())
         } else {

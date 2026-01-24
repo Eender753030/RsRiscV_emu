@@ -43,14 +43,19 @@ impl Mmu {
                     if leaf_pte.is_access_zero_and_set() {
                         bus.write_u32(leaf_pte_access, leaf_pte.into())?;
                     }
-                    if access.kind == AccessType::Load && leaf_pte.is_dirty_zero_and_set() {
+                    if access.kind == AccessType::Store && leaf_pte.is_dirty_zero_and_set() {
                         bus.write_u32(leaf_pte_access, leaf_pte.into())?;
                     }
                     
                     let p_addr = if pte0_opt.is_some() {
                         (leaf_pte.ppn() << 12) | vpn.offset() as u32
                     } else {
-                        (leaf_pte.ppn() << 22) | ((vpn.vpn_0() as u32) << 10) | vpn.offset() as u32
+                        let ppn_0 = leaf_pte.ppn() & 0x3ff;
+                        if ppn_0 != 0 {
+                            return Err(access.to_page_exception());
+                        }
+                        let ppn_1 = leaf_pte.ppn() & 0x3ffc00;
+                        ppn_1 << 12 | (vpn.vpn_0() as u32) << 12 | vpn.offset() as u32
                     };
                     Ok(Access::new(p_addr, access.kind))
                 } else {
@@ -63,7 +68,7 @@ impl Mmu {
     fn pte_walk(vpn: u32, ppn: u32, access: &Access, bus: &mut SystemBus) -> Result<(Sv32Pte, u32, bool), Exception> {
         let pte_addr = (ppn << 12) + vpn * 4;
 
-        let pte_access = Access::new(pte_addr, access.kind);
+        let pte_access = Access::new(pte_addr, AccessType::Load);
 
         let pte = Sv32Pte::from(bus.read_u32(pte_access)?);
 

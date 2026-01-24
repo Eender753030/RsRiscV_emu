@@ -47,7 +47,7 @@ impl Sv32Pte {
     }
 
     pub fn is_access_zero_and_set(&mut self) -> bool {
-        if self.a() > 0 {
+        if self.a() == 0 {
             self.set_a(1);
             true
         } else {
@@ -56,7 +56,7 @@ impl Sv32Pte {
     }
 
     pub fn is_dirty_zero_and_set(&mut self) -> bool {
-        if self.d() > 0 {
+        if self.d() == 0 {
             self.set_d(1);
             true
         } else {

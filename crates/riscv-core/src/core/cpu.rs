@@ -69,9 +69,18 @@ impl Cpu {
     fn fetch(&mut self) -> Result<u32, Exception> {
         let va_access = Access::new(self.pc.get(), super::AccessType::Fetch);
 
-        let pa_access = Mmu::translate(va_access, self.mode, self.csrs.check_stap(), &mut self.bus)?;
+        let pa_access = Mmu::translate(va_access, self.mode, self.csrs.check_satp(), &mut self.bus)?;
 
-        self.bus.read_u32(pa_access)
+        match self.bus.read_u32(pa_access) {
+            Ok(raw) => Ok(raw),
+            Err(e) => {
+                match e {
+                    Exception::LoadAccessFault(_) => Err(Exception::LoadAccessFault(va_access.addr)),
+                    Exception::StoreAccessFault(_) => Err(Exception::StoreAccessFault(va_access.addr)),
+                    _ => Err(e),
+                }
+            }
+        }    
     }
 
     fn decode(&self, bytes: u32) -> Result<Instruction, Exception> {
@@ -131,15 +140,15 @@ impl Cpu {
             Rv32iOp::Or => self.regs.write(data.rd, Alu::or(rs1_data, rs2_data)),
             Rv32iOp::And => self.regs.write(data.rd, Alu::and(rs1_data, rs2_data)),
 
-            Rv32iOp::Lb => self.regs.write(data.rd, Lsu::load_signed(&mut self.bus, rs1_data, data.imm, 1, self.mode, self.csrs.check_stap())?),
-            Rv32iOp::Lh => self.regs.write(data.rd, Lsu::load_signed(&mut self.bus, rs1_data, data.imm, 2, self.mode, self.csrs.check_stap())?),
-            Rv32iOp::Lw => self.regs.write(data.rd, Lsu::load(&mut self.bus, rs1_data, data.imm, 4, self.mode, self.csrs.check_stap())?),
-            Rv32iOp::Lbu => self.regs.write(data.rd, Lsu::load(&mut self.bus, rs1_data, data.imm, 1, self.mode, self.csrs.check_stap())?),
-            Rv32iOp::Lhu => self.regs.write(data.rd, Lsu::load(&mut self.bus, rs1_data, data.imm, 2, self.mode, self.csrs.check_stap())?),
+            Rv32iOp::Lb => self.regs.write(data.rd, Lsu::load_signed(&mut self.bus, rs1_data, data.imm, 1, self.mode, self.csrs.check_satp())?),
+            Rv32iOp::Lh => self.regs.write(data.rd, Lsu::load_signed(&mut self.bus, rs1_data, data.imm, 2, self.mode, self.csrs.check_satp())?),
+            Rv32iOp::Lw => self.regs.write(data.rd, Lsu::load(&mut self.bus, rs1_data, data.imm, 4, self.mode, self.csrs.check_satp())?),
+            Rv32iOp::Lbu => self.regs.write(data.rd, Lsu::load(&mut self.bus, rs1_data, data.imm, 1, self.mode, self.csrs.check_satp())?),
+            Rv32iOp::Lhu => self.regs.write(data.rd, Lsu::load(&mut self.bus, rs1_data, data.imm, 2, self.mode, self.csrs.check_satp())?),
 
-            Rv32iOp::Sb => Lsu::store(&mut self.bus, rs1_data, rs2_data, data.imm, 1, self.mode, self.csrs.check_stap())?,
-            Rv32iOp::Sh => Lsu::store(&mut self.bus, rs1_data, rs2_data, data.imm, 2, self.mode, self.csrs.check_stap())?,
-            Rv32iOp::Sw => Lsu::store(&mut self.bus, rs1_data, rs2_data, data.imm, 4, self.mode, self.csrs.check_stap())?,
+            Rv32iOp::Sb => Lsu::store(&mut self.bus, rs1_data, rs2_data, data.imm, 1, self.mode, self.csrs.check_satp())?,
+            Rv32iOp::Sh => Lsu::store(&mut self.bus, rs1_data, rs2_data, data.imm, 2, self.mode, self.csrs.check_satp())?,
+            Rv32iOp::Sw => Lsu::store(&mut self.bus, rs1_data, rs2_data, data.imm, 4, self.mode, self.csrs.check_satp())?,
 
             Rv32iOp::Beq => branch = Branch::equal(rs1_data, rs2_data),
             Rv32iOp::Bne => branch = Branch::not_equal(rs1_data, rs2_data),
