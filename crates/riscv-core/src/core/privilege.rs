@@ -1,3 +1,5 @@
+use crate::Exception;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum PrivilegeMode {
     #[default]
@@ -12,6 +14,16 @@ impl From<u8> for PrivilegeMode {
             0b00 => PrivilegeMode::User,
             0b01 => PrivilegeMode::Supervisor,
             _ => PrivilegeMode::Machine,
+        }
+    }
+}
+
+impl PrivilegeMode {
+    pub fn call_exception(&self) -> Exception {
+        match self {
+            PrivilegeMode::User => Exception::EnvironmentCallFromUMode,
+            PrivilegeMode::Supervisor => Exception::EnvironmentCallFromSMode,
+            PrivilegeMode::Machine => Exception::EnvironmentCallFromMMode,
         }
     }
 }

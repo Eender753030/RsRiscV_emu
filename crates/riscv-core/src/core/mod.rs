@@ -1,9 +1,10 @@
 mod cpu;
 mod csr;
-mod pc;
-mod register;
-mod privilege;
+mod execute;
 mod mmu;
+mod pc;
+mod privilege;
+mod register;
 
 pub use cpu::Cpu as RiscV;
 pub(crate) use mmu::access::{Access, AccessType};
