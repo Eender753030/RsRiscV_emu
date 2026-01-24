@@ -34,23 +34,14 @@ impl Memory {
     fn translate(&self, addr: usize) -> Option<&Page> {
         let idx = addr / PAGE_SIZE;
 
-        if addr as usize >= self.size {
-            None
-        } else {
-            self.pages[idx].as_ref().map(|page| page.as_ref())
-        }
+        self.pages.get(idx)?.as_ref().map(|page| page.as_ref())
     }
 
     fn translate_mut(&mut self, addr: usize) -> Option<&mut Page> {
         let idx = addr / PAGE_SIZE;
 
-        if addr as usize >= self.size {
-            None
-        } else {
-            Some(self.pages[idx].get_or_insert_with(|| 
-                Box::new(Page::default())
-            ))
-        }     
+        Some(self.pages.get_mut(idx)?
+            .get_or_insert_with(|| Box::new(Page::default())))
     }
 }
 
