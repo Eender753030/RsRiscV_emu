@@ -5,6 +5,7 @@ authors.workspace = true
 edition.workspace = true
 
 [dependencies]
-thiserror = "2"
 riscv-loader = {workspace = true}
 riscv-decoder = {workspace = true}
+
+thiserror = "2"

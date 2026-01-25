@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
-use riscv_decoder::decoder::decode;
 use riscv_loader::LoadInfo;
+use riscv_decoder::decoder::decode;
 
 use crate::instructions::ins_to_string;
 

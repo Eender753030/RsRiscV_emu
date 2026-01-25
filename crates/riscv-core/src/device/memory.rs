@@ -2,13 +2,13 @@
 
 mod page;
 
-use crate::exception::Exception;
+use crate::Exception;
 use crate::core::{Access, Physical};
+use super::Device;
 
 use page::Page;
-pub use page::PAGE_SIZE;
 
-use super::Device;
+pub use page::PAGE_SIZE;
 
 /// Memory structure. Store `u8` data as Little Endian.
 /// Unit of `size` is byte

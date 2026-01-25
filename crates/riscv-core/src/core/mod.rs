@@ -6,11 +6,12 @@ mod pc;
 mod privilege;
 mod register;
 
-pub use cpu::Cpu as RiscV;
-pub(crate) use mmu::access::{Access, AccessType, Physical};
-pub(crate) use mmu::Mmu;
 use pc::PC;
 use register::RegisterFile;
 use csr::CsrFile;
-pub(crate) use privilege::PrivilegeMode;
 
+pub(crate) use privilege::PrivilegeMode;
+pub(crate) use mmu::Mmu;
+pub(crate) use mmu::access::{Access, AccessType, Physical};
+
+pub use cpu::Cpu as RiscV;

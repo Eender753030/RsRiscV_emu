@@ -2,6 +2,8 @@ use std::marker::PhantomData;
 
 use crate::exception::Exception;
 
+use AccessType::*;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AccessType {
     Load,
@@ -22,24 +24,24 @@ pub struct Access<T = Virtual> {
     _marker: PhantomData<T>,
 }
 
-impl <T>Access<T> {
+impl<T> Access<T> {
     pub fn new(addr: u32, kind: AccessType) -> Self {
         Access { addr, kind, _marker: PhantomData }
     }
     
     pub fn to_access_exception(self) -> Exception {
         match self.kind {    
-            AccessType::Load => Exception::LoadAccessFault(self.addr),
-            AccessType::Store => Exception::StoreAccessFault(self.addr),
-            AccessType::Fetch => Exception::InstructionAccessFault(self.addr),
+            Load  => Exception::LoadAccessFault(self.addr),
+            Store => Exception::StoreAccessFault(self.addr),
+            Fetch => Exception::InstructionAccessFault(self.addr),
         }
     }
 
     pub fn to_page_exception(self) -> Exception {
         match self.kind {
-            AccessType::Load => Exception::LoadPageFault(self.addr),
-            AccessType::Store => Exception::StoreOrAmoPageFault(self.addr),
-            AccessType::Fetch => Exception::InstructionPageFault(self.addr),
+            Load => Exception::LoadPageFault(self.addr),
+            Store => Exception::StoreOrAmoPageFault(self.addr),
+            Fetch => Exception::InstructionPageFault(self.addr),
         }
     }  
 }
@@ -53,4 +55,3 @@ impl Access<Virtual> {
         Access { addr: self.addr, kind: self.kind, _marker: PhantomData }
     }
 }
-

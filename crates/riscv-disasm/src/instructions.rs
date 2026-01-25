@@ -1,12 +1,12 @@
 use std::collections::HashMap;
 
-use riscv_decoder::instruction::Instruction;
+use riscv_decoder::instruction::Instruction::{self, *};
 
 use crate::csr_addr::CsrAddr;
 
 pub fn ins_to_string(ins: Instruction, addr: u32, sym_table: &HashMap<u32, String>) -> String {   
     match ins {
-        Instruction::Base(op, data) => {
+        Base(op, data) => {
             if op.is_itype_ar() {
                 format!("{:<7} x{}, x{}, {}", op, data.rd, data.rs1, data.imm)
             } else if op.is_itype_load() | op.is_itype_jump() {
@@ -43,20 +43,20 @@ pub fn ins_to_string(ins: Instruction, addr: u32, sym_table: &HashMap<u32, Strin
                 format!("{:<7} x{}, x{}, x{}", op, data.rd, data.rs1, data.rs2)
             }
         },
-        Instruction::Privileged(op) => {
+        Privileged(op) => {
             format!("{:<7}", op)
         }
-        Instruction::M(op, data) => {
+        M(op, data) => {
             format!("{:<7} x{}, x{}, x{}", op, data.rd, data.rs1, data.rs2)
         },
-        Instruction::Ziscr(op, data) => {
+        Ziscr(op, data) => {
             let csr_str = CsrAddr::try_from(data.imm as u32 & 0xfff)
                 .map(|addr| addr.to_string())
                 .unwrap_or_else(|addr| format!("{:#x}",addr));
 
             format!("{:<7} x{}, {}, x{}", op, data.rd, csr_str, data.rs1)       
         },
-        Instruction::Zifencei(op, _)=> {
+        Zifencei(op, _)=> {
             format!("{:<7}", op)
         },
     }

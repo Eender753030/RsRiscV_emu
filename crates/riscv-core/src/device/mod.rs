@@ -2,7 +2,8 @@ pub mod bus;
 pub mod memory;
 pub mod uart;
 
-use crate::{core::{Access, Physical}, exception::Exception};
+use crate::core::{Access, Physical};
+use crate::Exception;
 
 pub trait Device {
     fn read_byte(&self, access: Access<Physical>) -> Result<u8, Exception>;

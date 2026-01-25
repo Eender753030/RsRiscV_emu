@@ -148,7 +148,7 @@ impl std::fmt::Debug for Cpu {
         writeln!(f, " PC: {:#08x}", self.pc.get())?;
         write!(f, " Registers {{")?;
         self.regs.iter().enumerate().try_for_each(|(id, regs)|
-            write!(f, " x{}: {}", id, regs as i32)
+            write!(f, " x{}: {}", id, *regs as i32)
         )?;
         writeln!(f, " }}")?;
         write!(f, " {:?}", self.bus)

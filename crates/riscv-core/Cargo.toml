@@ -5,6 +5,8 @@ authors.workspace = true
 edition.workspace = true
 
 [dependencies]
-thiserror = "2"
-modular-bitfield = "0.13"
 riscv-decoder = {workspace = true}
+
+modular-bitfield = "0.13"
+
+thiserror = "2"

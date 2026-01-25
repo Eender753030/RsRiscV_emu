@@ -1,24 +1,22 @@
-
-use crate::error::DecodeError;
 use crate::bits_op::BitsOp;
-use super::opcode::OpCode;
+use crate::error::DecodeError;
 use super::instruction::*;
+use super::opcode::OpCode;
+use super::instruction::Instruction::*;
 
 /// Turn 32 bits instruction to corresponding `Instruction` enum
 /// May return `RiscVError` of `NotImplementedOpCode`
 ///
 /// ## Example
 /// ```rust
-/// # use riscv_core::prelude::*;
+/// # use riscv_decoder::prelude::*;
 /// # use decoder::decode;
 /// // add x5, x6, x7
-/// # fn main() {
 /// let raw: u32 = 0x007302b3;
 /// let execpt = Instruction::Base(Rv32iOp::Add, InstructionData{rd: 5, rs1: 6, rs2: 7, imm: 0});
 ///
 /// assert_eq!(decode(raw), Ok(execpt));
-/// assert_eq!(decode(0x01), Err(Exception::IllegalInstruction));
-/// # }
+/// assert_eq!(decode(0x01), Err(DecodeError::UnknownOpcode(0x01)));
 /// ```
 pub fn decode(raw: u32) -> Result<Instruction, DecodeError> {
     let opcode = raw.get_bits(0, 7) as u8;
@@ -33,33 +31,33 @@ pub fn decode(raw: u32) -> Result<Instruction, DecodeError> {
         itype @ (OpCode::ItypeAr | OpCode::ItypeLoad | OpCode::ItypeJump | OpCode::ItypeFence | OpCode::ItypeSystem) => {
             let imm = raw.get_bits_signed(20, 12);
             
-            if let Some(op) = Rv32iOp::decode_itype(itype, funct3, funct7, imm as u16) {
-                Ok(Instruction::Base(op, InstructionData { rd, rs1, rs2, imm }))
+            Ok(if let Some(op) = Rv32iOp::decode_itype(itype, funct3, funct7, imm as u16) {
+                Base(op, InstructionData { rd, rs1, rs2, imm })
             } else if let Some(op) = ZicsrOp::decode(funct3) {
-                Ok(Instruction::Ziscr(op, InstructionData { rd, rs1, rs2, imm }))
+                Ziscr(op, InstructionData { rd, rs1, rs2, imm })
             } else if let Some(op) =  ZifenceiOp::decode(funct3) {
-                Ok(Instruction::Zifencei(op, InstructionData { rd, rs1, rs2, imm }))
+                Zifencei(op, InstructionData { rd, rs1, rs2, imm })
             }else if let Some(op) =  PrivilegeOp::decode(raw) {
-                Ok(Instruction::Privileged(op))    
+                Privileged(op)
             } else {
-                Err(DecodeError::UnknownInstruction(itype, raw))
-            }
+                return Err(DecodeError::UnknownInstruction(itype, raw))
+            })
         },
         // funct7 [6:0] | rs2 [4:0] | rs1 [4:0] | funct3 [2:0]  | rd [4:0] | opcode [6:0]
         rtype @ OpCode::Rtype => {
-            if let Some(op) = Rv32iOp::decode_rtype(funct3, funct7) {
-                Ok(Instruction::Base(op, InstructionData { rd, rs1, rs2, imm: 0 }))
+            Ok(if let Some(op) = Rv32iOp::decode_rtype(funct3, funct7) {
+                Base(op, InstructionData { rd, rs1, rs2, imm: 0 })
             } else if let Some(op) = MOp::decode(funct3, funct7) {
-                Ok(Instruction::M(op, InstructionData { rd, rs1, rs2, imm: 0 }))
+                M(op, InstructionData { rd, rs1, rs2, imm: 0 })
             } else {
-                Err(DecodeError::UnknownInstruction(rtype, raw))
-            }
+                return  Err(DecodeError::UnknownInstruction(rtype, raw))
+            })
         },
         // imm [11:5] | rs2 [4:0] | rs1 [4:0] | funct3 [2:0] | imm [4:0] | opcode [6:0]
         stype @ OpCode::Stype => {
             let imm = (raw.get_bits_signed(25, 7) << 5) | raw.get_bits(7, 5) as i32;
             if let Some(op) = Rv32iOp::decode_stype(funct3) {
-                Ok(Instruction::Base(op, InstructionData { rd, rs1, rs2, imm }))
+                Ok(Base(op, InstructionData { rd, rs1, rs2, imm }))
             } else {
                 Err(DecodeError::UnknownInstruction(stype, raw))
             }
@@ -71,7 +69,7 @@ pub fn decode(raw: u32) -> Result<Instruction, DecodeError> {
                 | (raw.get_bits(25, 6) << 5) as i32
                 | (raw.get_bits(8, 4) << 1) as i32;
             if let Some(op) = Rv32iOp::decode_btype(funct3) {
-                Ok(Instruction::Base(op, InstructionData { rd, rs1, rs2, imm }))
+                Ok(Base(op, InstructionData { rd, rs1, rs2, imm }))
             } else {
                 Err(DecodeError::UnknownInstruction(btype, raw))
             }
@@ -83,7 +81,7 @@ pub fn decode(raw: u32) -> Result<Instruction, DecodeError> {
                 | (raw.get_bits(20, 1) << 11) as i32
                 | (raw.get_bits(21, 10) << 1) as i32;
             if let Some(op) = Rv32iOp::decode_jtype() {
-                Ok(Instruction::Base(op, InstructionData { rd, rs1, rs2, imm }))
+                Ok(Base(op, InstructionData { rd, rs1, rs2, imm }))
             } else {
                 Err(DecodeError::UnknownInstruction(jtype, raw))
             }
@@ -93,7 +91,7 @@ pub fn decode(raw: u32) -> Result<Instruction, DecodeError> {
             let imm = raw.get_bits_signed(12, 20) << 12;
 
             if let Some(op) = Rv32iOp::decode_utype(utype) {
-                Ok(Instruction::Base(op, InstructionData { rd, rs1, rs2, imm }))
+                Ok(Base(op, InstructionData { rd, rs1, rs2, imm }))
             } else {
                 Err(DecodeError::UnknownInstruction(utype, raw))
             }

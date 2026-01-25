@@ -15,8 +15,8 @@ impl RegisterFile {
         self.regs.fill(0);
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = u32> + '_ {
-        self.regs.iter().copied()
+    pub fn iter(&self) -> impl Iterator<Item = &u32> + '_ {
+        self.regs.iter()
     }
 
     pub fn inspect(&self) -> [u32; 32] {

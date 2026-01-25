@@ -1,4 +1,4 @@
-//! For handle file or argument from outside.
+//! Handle ELF file load by file path 
 
 mod binary;
 mod elf;
@@ -10,9 +10,20 @@ use crate::load_info::LoadInfo;
 
 use elf::load_elf;
 
-pub fn load<P: AsRef<Path>>(filepath: &P) -> Result<LoadInfo, LoadError> { 
+/// Dispatch `filepath` to `load_elf`
+/// Return `LoadInfo` for Risc-V to load into memory
+/// If the target file is not ELF file, call `read_binary` instead
+/// Other errors will return directly 
+/// ## Example
+/// ```rust,no_run
+/// # use risc_v_emulator::riscv::loader;
+/// let filepath: &str = "file.elf";
+/// 
+/// let load_info = load(filepath).expect("Get LoadInfo successed");
+/// ```
+pub fn load<P: AsRef<Path>>(filepath: &P) -> Result<LoadInfo, LoadError> {     
     load_elf(filepath).or_else(|e| match e {
         LoadError::NotElfFile(raw_binary) => Ok(LoadInfo::from_raw_binary(raw_binary)),
-        _   => Err(e),
+        _ => Err(e),
     })
 }

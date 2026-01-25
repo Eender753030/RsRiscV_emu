@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-#[derive(Error, Debug)]
+#[derive(Error, Debug, Clone, PartialEq, Eq)]
 pub enum LoadError {
     #[error("Architecture: {0} is not Risc-V (243)")]
     NotRiscVArc(u16),

@@ -66,12 +66,8 @@ pub fn tui_loop(machine: &mut RiscV, code: &[u8], addr: u32, ins_list: Vec<Strin
                         emu_state.running_mode_selected_update();
                     },
                     KeyControl::Step => {
-                        if let Err (e) = emu_state.machine.step() {
-                            match e {
-                                RiscVError::EndOfInstruction => {},
-                                _ => return Err(anyhow::Error::new(e)),
-                            }
-                        }
+                        emu_state.machine.step()?;
+                        
                         emu_state.update_data();
                         emu_state.running_mode_selected_update();
                     },
@@ -92,12 +88,8 @@ pub fn tui_loop(machine: &mut RiscV, code: &[u8], addr: u32, ins_list: Vec<Strin
                 if (emu_state.pc - DRAM_BASE_ADDR) as usize >= code.len() {
                     emu_state.mode = EmuMode::Stay;
                 } else {
-                    if let Err (e) = emu_state.machine.step() {
-                        match e {
-                            RiscVError::EndOfInstruction => emu_state.mode = EmuMode::Stay,
-                            _ => return Err(anyhow::Error::new(e)),
-                        }
-                    }
+                    emu_state.machine.step()?;
+
                     emu_state.update_data();
                     emu_state.running_mode_selected_update();
                 }

@@ -1,8 +1,9 @@
 pub mod decoder;
 pub mod instruction;
-mod opcode;
+pub mod prelude;
+
 mod bits_op;
 mod error;
-pub mod prelude;
+mod opcode;
 
 pub use error::DecodeError;

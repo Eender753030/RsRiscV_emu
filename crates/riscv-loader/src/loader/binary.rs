@@ -12,9 +12,9 @@ use crate::error::LoadError;
 /// ## Example
 /// ```rust,no_run
 /// # use risc_v_emulator::riscv::loader;
-/// let filepath: &str = "binary_file";
+/// let filepath: &str = "file.bin";
 /// 
-/// let binary_vec = loader::read_binary(filepath).expect("Read binary successed");
+/// let binary_vec = read_binary(filepath).expect("Read binary successed");
 /// ```
 pub fn read_binary<P: AsRef<Path>>(filepath: &P) -> Result<Vec<u8>, LoadError>{
     // Try to open file

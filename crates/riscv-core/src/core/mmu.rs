@@ -1,10 +1,13 @@
-pub mod access;
 mod sv32;
 
-use crate::{Exception, core::{mmu::{access::{Physical, Virtual}, sv32::Sv32Vpn}, privilege::PrivilegeMode}, device::bus::SystemBus};
+pub mod access;
 
-use sv32::Sv32Pte;
-use access::{Access, AccessType};
+use crate::Exception;
+use crate::core::privilege::PrivilegeMode;
+use crate::device::bus::SystemBus;
+
+use sv32::{Sv32Pte, Sv32Vpn};
+use access::{Access, AccessType, Physical, Virtual};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct Mmu;
@@ -12,8 +15,8 @@ pub struct Mmu;
 impl Mmu {
     pub fn translate(access: Access<Virtual>, mode: PrivilegeMode, ppn_opt: Option<u32>, bus: &mut SystemBus) -> Result<Access<Physical>, Exception> {
         let v_addr = access.addr; 
-        match mode {
-            PrivilegeMode::Machine => Ok(access.bypass()),
+        Ok(match mode {
+            PrivilegeMode::Machine => access.bypass(),
             PrivilegeMode::Supervisor | PrivilegeMode::User => {
                 if let Some(ppn) = ppn_opt {
                     let vpn = Sv32Vpn::from(v_addr);
@@ -57,12 +60,12 @@ impl Mmu {
                         let ppn_1 = leaf_pte.ppn() & 0x3ffc00;
                         ppn_1 << 12 | (vpn.vpn_0() as u32) << 12 | vpn.offset() as u32
                     };
-                    Ok(access.into_physical(p_addr))
+                    access.into_physical(p_addr)
                 } else {
-                    Ok(access.bypass())
+                    access.bypass()
                 }
             }
-        }
+        })
     }
 
     fn pte_walk(vpn: u32, ppn: u32, access: &Access, bus: &mut SystemBus) -> Result<(Sv32Pte, u32, bool), Exception> {
@@ -72,25 +75,30 @@ impl Mmu {
 
         let pte = Sv32Pte::from(bus.read_u32(pte_access)?);
 
-        if !pte.is_valid() || (!pte.can_read() && pte.can_write()) {
-            Err(access.to_page_exception())
+        Ok(if !pte.is_valid() || (!pte.can_read() && pte.can_write()) {
+            return  Err(access.to_page_exception())
         } else if pte.is_leaf() {
-                Ok((pte, pte_addr, true))
+            (pte, pte_addr, true)
         } else {
-            Ok((pte, pte_addr, false))
-        }
+            (pte, pte_addr, false)
+        })
     }
 
     fn access_check(pte: &Sv32Pte, access: Access, mode: PrivilegeMode) -> Result<(), Exception> {
-        if match access.kind {
-            AccessType::Load => !pte.can_read(),
+        let can_access = match access.kind {
+            AccessType::Load  => !pte.can_read(),
             AccessType::Store => !pte.can_write(),
             AccessType::Fetch => !pte.can_execute(),
-        } || (mode == PrivilegeMode::User && !pte.can_user() ||
-                mode == PrivilegeMode::Supervisor && pte.can_user()) {
-            Err(access.to_page_exception())
-        } else {
+        };
+        
+        let can_mode = 
+            mode == PrivilegeMode::User       && !pte.can_user() ||
+            mode == PrivilegeMode::Supervisor && pte.can_user();
+         
+        if can_access && can_mode {
             Ok(())
+        } else {
+            Err(access.to_page_exception())
         }
     }
 }
