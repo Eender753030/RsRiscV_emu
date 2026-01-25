@@ -11,15 +11,8 @@ use crate::load_info::LoadInfo;
 use elf::load_elf;
 
 pub fn load<P: AsRef<Path>>(filepath: &P) -> Result<LoadInfo, LoadError> { 
-    match load_elf(filepath) {
-        Ok(info) => Ok(info),
-        Err(e) => {
-            match e {
-                LoadError::NotElfFile(raw_binary) => {
-                    Ok(LoadInfo::new(0, raw_binary, 0))
-                }
-                _ => Err(e)
-            }
-        }
-    }
+    load_elf(filepath).or_else(|e| match e {
+        LoadError::NotElfFile(raw_binary) => Ok(LoadInfo::from_raw_binary(raw_binary)),
+        _   => Err(e),
+    })
 }
