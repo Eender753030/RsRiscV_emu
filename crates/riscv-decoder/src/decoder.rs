@@ -122,7 +122,7 @@ mod tests {
         }
 
         #[test]
-        fn itype_arithmetic_test() {
+        fn test_itype_arithmetic() {
             // addi x10, x0, -2048
             let ins1 = 0x80000513;
             let expect1 = build_base_data(Rv32iOp::Addi, 10, 0, 0, -2048);
@@ -136,7 +136,7 @@ mod tests {
         }
 
         #[test]
-        fn itype_load_test() {
+        fn test_itype_load() {
             // lw x5, 12(x7)
             let ins1 = 0x00c3a283;
             let expect1 = build_base_data(Rv32iOp::Lw, 5, 7, 12, 12);
@@ -149,7 +149,7 @@ mod tests {
         }
 
         #[test]
-        fn itype_jump_test() {
+        fn  test_jump() {
             // jalr x1, -442(x21)
             let ins = 0xe46a80e7;
             let expect = build_base_data(Rv32iOp::Jalr, 1, 21, 6, -442);
@@ -158,7 +158,7 @@ mod tests {
         }
 
         #[test]
-        fn itype_sys_test() {
+        fn  test_sys() {
             // ecall
             let ins1 = 0x00000073;
             let expect1 = build_base_data(Rv32iOp::Ecall, 0, 0, 0, 0);
@@ -171,7 +171,7 @@ mod tests {
         }
 
         #[test]
-        fn rtype_test() {
+        fn  test_rtype() {
             // sub x13, x15, x18
             let ins1 = 0x412786b3;
             let expect1 = build_base_data(Rv32iOp::Sub, 13, 15, 18, 0);
@@ -184,7 +184,7 @@ mod tests {
         }
 
         #[test]
-        fn stype_test() {
+        fn  test_stype() {
             // sw x21, 123(x13)
             let ins1 = 0x0756ada3;
             let expect1 = build_base_data(Rv32iOp::Sw, 27, 13, 21, 123);
@@ -197,7 +197,7 @@ mod tests {
         }
 
         #[test]
-        fn jtype_test() {
+        fn  test_jtype() {
             // jal x1, 32
             let ins = 0x020000ef;
             let expect = build_base_data(Rv32iOp::Jal, 1, 0, 0, 32);
@@ -206,7 +206,7 @@ mod tests {
         }
 
         #[test]
-        fn utype_test() {
+        fn  test_utype() {
             // auipc x29, 0x100
             let ins1 = 0x00100e97;
             let expect1 = build_base_data(Rv32iOp::Auipc, 29, 0, 1, 0x100 << 12);
@@ -230,7 +230,7 @@ mod tests {
         }
 
         #[test]
-        fn m_test() {
+        fn  test_m() {
             // mulhsu x17, x16, x15
             let ins1 = 0x02f828b3;
             let expect1 = build_m_data(MOp::Mulhsu, 17, 16, 15, 0);
@@ -254,7 +254,7 @@ mod tests {
         }
         
         #[test]
-        fn zicsr_test() {
+        fn  test_zicsr() {
             // csrrw x0, mstatus, x5
             let ins1 = 0x30029073;
             let expect1 = build_zicsr_data(ZicsrOp::Csrrw, 0, 5, 0, 0x300);
@@ -273,7 +273,7 @@ mod tests {
         use crate::instruction::ZifenceiOp;
               
         #[test]
-        fn zifencei_test() {
+        fn  test_zifencei() {
             // fence.i
             let ins = 0x0000100f;
             let expect = 
@@ -289,7 +289,7 @@ mod tests {
         use crate::instruction::{Instruction, PrivilegeOp};
 
         #[test]
-        fn privileged_test() {
+        fn  test_privileged() {
             // sret
             let ins1 = 0x10200073;
             let expect1 = Instruction::Privileged(PrivilegeOp::Sret);
@@ -307,7 +307,7 @@ mod tests {
     use crate::opcode::OpCode;
 
     #[test]
-    fn illegal_test() {
+    fn  test_illegal() {
         let err_ins1 = 0xffffffff;
         let expect_err1 = Err(DecodeError::UnknownOpcode(0x7f));
         let err_ins2 = 0x00200073;

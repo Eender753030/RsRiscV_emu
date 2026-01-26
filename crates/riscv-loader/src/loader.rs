@@ -16,10 +16,10 @@ use elf::load_elf;
 /// Other errors will return directly 
 /// ## Example
 /// ```rust,no_run
-/// # use risc_v_emulator::riscv::loader;
-/// let filepath: &str = "file.elf";
+/// # use riscv_loader::load;
+/// let filepath: String = "file.elf".to_string();
 /// 
-/// let load_info = load(filepath).expect("Get LoadInfo successed");
+/// let load_info = load(&filepath).expect("Get LoadInfo successed");
 /// ```
 pub fn load<P: AsRef<Path>>(filepath: &P) -> Result<LoadInfo, LoadError> {     
     load_elf(filepath).or_else(|e| match e {

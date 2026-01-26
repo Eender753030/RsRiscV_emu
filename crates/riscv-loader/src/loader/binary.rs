@@ -9,13 +9,6 @@ use crate::error::LoadError;
 /// Access binary file by `filepath` and return its content by `Vec<u8>` if successed
 /// Otherwise, return `LoadError`
 /// Risc-V is Little Endian.
-/// ## Example
-/// ```rust,no_run
-/// # use risc_v_emulator::riscv::loader;
-/// let filepath: &str = "file.bin";
-/// 
-/// let binary_vec = read_binary(filepath).expect("Read binary successed");
-/// ```
 pub fn read_binary<P: AsRef<Path>>(filepath: &P) -> Result<Vec<u8>, LoadError>{
     // Try to open file
     let file = fs::File::open(filepath).map_err(|e| 

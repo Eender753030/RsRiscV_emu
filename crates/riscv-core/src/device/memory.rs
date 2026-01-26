@@ -155,46 +155,60 @@ impl std::fmt::Debug for Memory {
     }
 }
 
-// #[cfg(test)]
-// mod memory_tests {
-//     use crate::device::memory::_2GB;
-//     use crate::device::memory::PAGE_SIZE;
+#[cfg(test)]
+mod tests {
+    use crate::Exception;
+    use crate::core::{Access, AccessType};
+    use crate::device::Device;
+    use crate::device::memory::{Memory, _2GB};
+    use crate::device::memory::page::PAGE_SIZE;
+    
+    #[test]
+    fn test_initalization() {
+        let mem = Memory::new(_2GB);
 
-//     use super::Device;
-//     use super::Memory;
+        assert_eq!(mem.size, _2GB);
+        assert_eq!(mem.pages.len(), _2GB / PAGE_SIZE);
+        assert!(mem.pages.iter().all(|p| p.is_none()));
+    }
 
-//     #[test]
-//     fn create_test() {
-//         let mem = Memory::new(_2GB);
+    #[test]
+    fn test_lazy_alloction() {
+        let mut mem = Memory::new(PAGE_SIZE * 2);
 
-//         assert_eq!(mem.size, _2GB);
-//         assert_eq!(mem.pages, vec![None; _2GB / PAGE_SIZE]);
-//     }
+        let access = Access::new(0, AccessType::Load);
+        assert_eq!(mem.read_byte(access), Err(Exception::LoadAccessFault(0)));
 
-//     #[test]
-//     fn read_write_test() {
-//         let mut mem = Memory::new(PAGE_SIZE * 2);
+        let access_write = Access::new(0, AccessType::Store);
+        assert!(mem.write_byte(access_write, 0xcc).is_ok());
 
-//         // Part 1: test byte
-//         assert_eq!(mem.write_byte(4095, 255), Ok(()));
-//         assert_eq!(mem.read_byte(4095), Ok(255));
-//         assert_eq!(mem.pages[0].as_ref().unwrap()[4095], 255);
-//         assert_eq!(mem.pages[1], None);
-//         assert!(mem.pages[0].is_some());
+        assert!(mem.pages[0].is_some());
+        assert!(mem.pages[1].is_none());
 
-//         // Part 2: test bytes
-//         let data = [0xAA, 0xBB, 0xCC, 0xDD];
+        let access_read = Access::new(0, AccessType::Load);
+        assert_eq!(mem.read_byte(access_read), Ok(0xcc));
+    }
 
-//         let mut des = [0_u8; 4];
+    #[test]
+    fn test_cross_page_access() {
+        let mut mem = Memory::new(PAGE_SIZE * 2);
+        
+        let addr = PAGE_SIZE - 2;
+        let data = [0x11, 0x22, 0x33, 0x44];
+        
+        let access = Access::new(addr as u32, AccessType::Store);
+        
+        assert!(mem.write_bytes(access, 4, &data).is_ok());
+        
+        assert!(mem.pages[0].is_some());
+        assert!(mem.pages[1].is_some());
 
-//         assert_eq!(mem.write_bytes(4095, 4, &data), Ok(()));
-//         assert_eq!(mem.read_bytes(4095, 4, &mut des), Ok(()));
-//         assert_eq!(&mem.pages[0].as_ref().unwrap()[4095], &data[0]);
-//         assert_eq!(&mem.pages[1].as_ref().unwrap()[0..3], &data[1..4]);
+        let p0 = mem.pages[0].as_ref().unwrap();
+        assert_eq!(p0[PAGE_SIZE - 2], 0x11);
+        assert_eq!(p0[PAGE_SIZE - 1], 0x22);
 
-//         assert_eq!(&des, &data);
-
-//         assert!(mem.pages[0].is_some());
-//         assert!(mem.pages[1].is_some());
-//     }
-// }
+        let p1 = mem.pages[1].as_ref().unwrap();
+        assert_eq!(p1[0], 0x33);
+        assert_eq!(p1[1], 0x44);
+    }
+}
