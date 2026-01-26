@@ -32,4 +32,30 @@ pub fn disassembler(info: &LoadInfo) -> Vec<String> {
             })
     ).collect()
 }
-            
+
+ #[cfg(test)]
+mod tests {
+    use std::collections::HashMap;
+
+    use crate::disasm::disassembler;
+    use riscv_loader::LoadInfo;
+
+    #[test]
+    fn test_disassembler_flow() {
+        let mut info = LoadInfo::default();
+        // 0x00000513 -> addi x10, x0, 0
+        // 0x00000073 -> ecall
+        let code_bytes = vec![0x13, 0x05, 0x00, 0x00, 0x73, 0x00, 0x00, 0x00];
+        info.code = vec![(code_bytes, 0x80000000)];
+        
+        let mut syms = HashMap::new();
+        syms.insert(0x80000000, "main".to_string());
+        info.symbols = Some(syms);
+
+        let output = disassembler(&info);
+
+        assert!(output.contains(&"main:".to_string()));
+        assert!(output[1].contains("addi    x10, x0, 0"));
+        assert!(output[2].contains("ecall"));
+    }
+}

@@ -78,3 +78,47 @@ fn check_fence(data: i32) -> String {
 
     output
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::instructions::*;
+    use riscv_decoder::instruction::{Instruction, InstructionData, Rv32iOp};
+    use std::collections::HashMap;
+
+    #[test]
+    fn test_base_instruction_disasm() {
+        let sym_table = HashMap::new();
+        let addr = 0x80000000;
+
+        // addi x10, x0, 10
+        let ins = Instruction::Base(
+            Rv32iOp::Addi,
+            InstructionData { rd: 10, rs1: 0, rs2: 0, imm: 10 }
+        );
+        assert_eq!(ins_to_string(ins, addr, &sym_table), "addi    x10, x0, 10");
+
+        // sw x5, 4(x6)
+        let ins = Instruction::Base(
+            Rv32iOp::Sw,
+            InstructionData { rd: 0, rs1: 6, rs2: 5, imm: 4 }
+        );
+        assert_eq!(ins_to_string(ins, addr, &sym_table), "sw      x5, 4(x6)");
+    }
+
+    #[test]
+    fn test_disasm_with_symbols() {
+        let mut sym_table = HashMap::new();
+        let addr = 0x80000000;
+        let target_addr = 0x80000100;
+        sym_table.insert(target_addr, "target_label".to_string());
+
+        // jal x1, 256
+        let ins = Instruction::Base(
+            Rv32iOp::Jal,
+            InstructionData { rd: 1, rs1: 0, rs2: 0, imm: 256 }
+        );
+        
+        let result = ins_to_string(ins, addr, &sym_table);
+        assert_eq!(result, "jal     x1, target_label");
+    }
+}
