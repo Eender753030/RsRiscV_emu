@@ -22,7 +22,7 @@ impl Mmu {
                     let vpn = Sv32Vpn::from(v_addr);
                     let (pte1, pte1_addr, is_leaf) = Self::pte_walk(
                         vpn.vpn_1() as u32, ppn, &access, bus)?;
-
+             
                     let pte0_opt = if is_leaf {
                         None
                     } else {
@@ -39,9 +39,9 @@ impl Mmu {
                     } else {
                         (pte1, pte1_addr)
                     };
-
+                
                     Self::access_check(&leaf_pte, access, mode)?;
-
+                    
                     let leaf_pte_access = Access::new(leaf_pte_addr, access.kind);
                     if leaf_pte.is_access_zero_and_set() {
                         bus.write_u32(leaf_pte_access, leaf_pte.into())?;
@@ -86,15 +86,15 @@ impl Mmu {
 
     fn access_check(pte: &Sv32Pte, access: Access, mode: PrivilegeMode) -> Result<(), Exception> {
         let can_access = match access.kind {
-            AccessType::Load  => !pte.can_read(),
-            AccessType::Store => !pte.can_write(),
-            AccessType::Fetch => !pte.can_execute(),
+            AccessType::Load  => pte.can_read(),
+            AccessType::Store => pte.can_write(),
+            AccessType::Fetch => pte.can_execute(),
         };
         
         let can_mode = 
-            mode == PrivilegeMode::User       && !pte.can_user() ||
-            mode == PrivilegeMode::Supervisor && pte.can_user();
-         
+            (mode == PrivilegeMode::User       && pte.can_user()) ||
+            (mode == PrivilegeMode::Supervisor && !pte.can_user());
+    
         if can_access && can_mode {
             Ok(())
         } else {
