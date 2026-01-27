@@ -1,6 +1,7 @@
-pub mod instruction;
-pub mod memory;
-pub mod mid;
+mod instruction;
+mod exception;
+mod memory;
+mod mid;
 
 use ratatui::{
     Frame, 
@@ -12,18 +13,19 @@ use ratatui::{
 use crate::state::EmuState;
 
 pub use instruction::Instruction;
+pub use exception::Exception;
 pub use memory::Memory;
 pub use mid::csr::Csr;
 pub use mid::register::Register;
 
-const ANTI_FLASH_WHITE: Color = Color::Rgb(242, 242, 242);
-const BERKELEY_BLUE: Color = Color::Rgb(0, 50, 98);
-const CALIFORNIA_GOLD: Color = Color::Rgb(253, 181, 21);
+pub(super) const ANTI_FLASH_WHITE: Color = Color::Rgb(242, 242, 242);
+pub(super) const BERKELEY_BLUE: Color = Color::Rgb(0, 50, 98);
+pub(super) const CALIFORNIA_GOLD: Color = Color::Rgb(253, 181, 21);
 
 pub trait Component {
     fn render(f: &mut Frame, area: Rect, emu: &mut EmuState);
 
-    fn list_state_render(
+    fn render_list_state(
         f: &mut Frame, 
         area: Rect, 
         items: Vec<ListItem>,

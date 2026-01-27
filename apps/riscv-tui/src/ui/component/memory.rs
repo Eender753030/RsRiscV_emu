@@ -25,6 +25,6 @@ impl Component for Memory {
         );
         let state = &mut emu.mem.list_state;
 
-        Self::list_state_render(f, area, items, state, &title);
+        Self::render_list_state(f, area, items, state, &title);
     }
 }

@@ -2,7 +2,7 @@ use ratatui::{
     Frame,
     layout::{Layout, Rect, Constraint, Alignment},
     widgets::{Block, Paragraph},
-    style::{Color, Style},  
+    style::Style,  
 };
 
 use crate::state::{EmuState, EmuMode, Mid};
@@ -35,7 +35,7 @@ fn render_header(f: &mut Frame, area: Rect, emu_state: &EmuState) {
     
     let paragraph = Paragraph::new(message)
         .block(Block::bordered().title(HEADER))
-        .style(Style::default().bg(Color::Rgb(0, 50, 98)).fg(Color::Rgb(253, 181, 21)))
+        .style(Style::default().bg(BERKELEY_BLUE).fg(CALIFORNIA_GOLD))
         .alignment(Alignment::Center);
 
     f.render_widget(paragraph, area);
@@ -43,19 +43,24 @@ fn render_header(f: &mut Frame, area: Rect, emu_state: &EmuState) {
 
 fn render_paragraph(f: &mut Frame, area: Rect, message: &str) {
     let paragraph = Paragraph::new(message)
-        .block(Block::bordered())
-        .style(Style::default().bg(Color::Rgb(0, 50, 98)).fg(Color::Rgb(253, 181, 21)))
+        .block(Block::bordered().title("Control Hint").title_alignment(Alignment::Center))
+        .style(Style::default().bg(BERKELEY_BLUE).fg(CALIFORNIA_GOLD))
         .alignment(Alignment::Center);
 
     f.render_widget(paragraph, area);
 }
 
 fn render_content(f: &mut Frame, area: Rect, emu: &mut EmuState) {
-    let info_layout = Layout::horizontal([
-        Constraint::Percentage(50),
-        Constraint::Percentage(20),
-        Constraint::Percentage(30),
+    let layout = Layout::vertical([
+        Constraint::Min(0),
+        Constraint::Length(3),
     ]).split(area);
+    
+    let info_layout = Layout::horizontal([
+        Constraint::Percentage(45),
+        Constraint::Percentage(20),
+        Constraint::Percentage(35),
+    ]).split(layout[0]);
 
     Instruction::render(f, info_layout[0], emu);
     match emu.mid_selected {
@@ -63,4 +68,5 @@ fn render_content(f: &mut Frame, area: Rect, emu: &mut EmuState) {
         Mid::Csr => Csr::render(f, info_layout[1], emu),
     }
     Memory::render(f, info_layout[2], emu);
+    Exception::render(f, layout[1], emu);
 }

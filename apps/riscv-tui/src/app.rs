@@ -3,7 +3,6 @@ use std::time::Duration;
 use anyhow::Result;
 
 use riscv_core::RiscV;
-use riscv_core::constance::DRAM_BASE_ADDR;
 use riscv_disasm::disasm;
 use riscv_loader::LoadInfo;
 
@@ -45,21 +44,17 @@ impl EmuApp {
             self.event()?;
 
             if self.state.mode == EmuMode::Running {
-                self.running()?;
+                self.step()?;
             }
         }
         Ok(())
     }
 
-    fn running(&mut self) -> Result<()> {
-        if (self.state.pc - DRAM_BASE_ADDR) as usize >= self.state.ins_len * 4{
-            self.state.mode = EmuMode::Stay;
-        } else {
-            self.machine.step()?;
-
-            self.state.update_data(&self.machine);
-            self.state.running_mode_selected_update();
+    fn step(&mut self) -> Result<()> {
+        if let Some(except) = self.machine.step()? {
+            self.state.update_exception(except);
         }
+        self.state.update_data(&self.machine);
         Ok(())
     }
 
@@ -79,7 +74,7 @@ impl EmuApp {
                     EmuMode::Running => self.key_running(key),
                 }
             },
-            EmuEvent::Resize(x, y) => {},
+            EmuEvent::Resize(_, _) => {},
             EmuEvent::None => {},
         }
 
@@ -119,14 +114,9 @@ impl EmuApp {
                 self.machine.reset();
                 self.machine.load_info(&self.info)?;
                 self.state.update_data(&self.machine);
-                self.state.running_mode_selected_update();
+                self.state.except = "".to_string();
             },
-            Step => {
-                self.machine.step()?;
-                
-                self.state.update_data(&self.machine);
-                self.state.running_mode_selected_update();
-            },
+            Step     => self.step()?,
             RunToEnd => self.state.mode = EmuMode::Running,
             _ => {},
         }

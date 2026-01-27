@@ -65,14 +65,16 @@ impl Cpu {
     }
 
     pub fn run(&mut self) -> Result<(), RiscVError> {
-        loop { self.step()? }
+        loop { self.step()?; }
     }
  
-    pub fn step(&mut self) -> Result<(), RiscVError> {
-        if let Err(execpt) = self.cycle() {        
+    pub fn step(&mut self) -> Result<Option<Exception>, RiscVError> {
+        Ok(if let Err(execpt) = self.cycle() {        
             self.trap_handle(execpt);
-        }
-        Ok(())
+            Some(execpt)
+        } else {
+            None
+        })
     }
 
     fn cycle(&mut self) -> Result<(), Exception> {
@@ -88,17 +90,12 @@ impl Cpu {
         let va_access = Access::new(self.pc.get(), super::AccessType::Fetch);
 
         let pa_access = Mmu::translate(va_access, self.mode, self.csrs.check_satp(), &mut self.bus)?;
-
-        match self.bus.read_u32(pa_access) {
-            Ok(raw) => Ok(raw),
-            Err(e) => {
-                match e {
-                    Exception::LoadAccessFault(_) => Err(Exception::LoadAccessFault(va_access.addr)),
-                    Exception::StoreAccessFault(_) => Err(Exception::StoreAccessFault(va_access.addr)),
-                    _ => Err(e),
-                }
-            }
-        }    
+        
+        self.bus.read_u32(pa_access).or_else(|e| {
+            Err(match e {
+            Exception::InstructionAccessFault(_) => Exception::InstructionAccessFault(va_access.addr),
+            _ => e
+        })})
     }
 
     fn decode(&self, bytes: u32) -> Result<Instruction, Exception> {

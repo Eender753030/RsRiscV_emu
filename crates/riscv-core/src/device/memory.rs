@@ -86,10 +86,8 @@ impl Device for Memory {
 
             let page = self.translate(addr);
             match page {
-                None => 
-                    return Err(access.to_access_exception()),
-                Some(p) => 
-                    des[start..start + len].copy_from_slice(&p[p_start..p_start + len]),
+                None    => return Err(access.to_access_exception()),
+                Some(p) => des[start..start + len].copy_from_slice(&p[p_start..p_start + len]),
             }
 
             start += len;

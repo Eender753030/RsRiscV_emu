@@ -21,7 +21,7 @@ impl Component for Instruction {
             let marker = if ins.ends_with(':') {
                 offset += 1;
                 ""
-            } else if (emu.pc - DRAM_BASE_ADDR) / 4 == ((i - offset) as u32) {
+            } else if (DRAM_BASE_ADDR..DRAM_BASE_ADDR + (emu.ins_len * 4) as u32).contains(&emu.pc) && (emu.pc - DRAM_BASE_ADDR) / 4 == ((i - offset) as u32) {
                 if emu.mode != EmuMode::Observation {
                     emu.ins.list_state.select(Some(i));
                 }
@@ -33,6 +33,6 @@ impl Component for Instruction {
         }).collect();
 
         let state = &mut emu.ins.list_state;
-        Self::list_state_render(f, area, items, state, INSTRUCTION_TITLE);
+        Self::render_list_state(f, area, items, state, INSTRUCTION_TITLE);
     }
 }

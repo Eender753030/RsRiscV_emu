@@ -18,6 +18,6 @@ impl Component for Register {
             }).collect();
     
         let state = &mut emu.reg.list_state;
-        Self::list_state_render(f, area, items, state, MID_TITLE);
+        Self::render_list_state(f, area, items, state, MID_TITLE);
     }
 }

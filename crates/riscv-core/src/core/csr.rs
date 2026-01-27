@@ -121,8 +121,8 @@ impl CsrFile {
             Exception::LoadPageFault(addr) |
             Exception::StoreOrAmoPageFault(addr) |
             Exception::InstructionPageFault(addr)
-            => addr,
-            _ => 0
+                => addr,
+            _   => 0,
         };
    
         match target_mode {

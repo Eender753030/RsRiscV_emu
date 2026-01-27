@@ -1,5 +1,6 @@
 mod list_state;
 
+use riscv_core::Exception;
 use riscv_core::constance::DRAM_BASE_ADDR;
 use riscv_core::debug::{DebugInterface, MachineInfo};
 
@@ -35,6 +36,8 @@ pub struct EmuState {
     pub csr: ListStateRecord<(String, u32)>,
     pub mem: ListStateRecord<u8>,
     pub pc: u32,
+    pub except: String,
+
     pub mode: EmuMode,
     pub selected: Selected,
     pub mid_selected: Mid,
@@ -53,6 +56,7 @@ impl EmuState {
         let reg = ListStateRecord::new(machine.inspect_regs().into_iter().collect());
         let csr = ListStateRecord::new(machine.inspect_csrs());
         let mem = ListStateRecord::new(machine.inspect_mem(dram_base, page_size));
+        let except = "".to_string();
         let pc = machine.inspect_pc();
 
         let page_selected = 0;
@@ -63,7 +67,7 @@ impl EmuState {
         ins.select_curr();
 
         EmuState { 
-            ins, reg, csr, mem, pc, 
+            ins, reg, csr, mem, except, pc, 
             mode, selected, mid_selected,
             page_selected, ins_len,
             machine_info,
@@ -80,19 +84,25 @@ impl EmuState {
         self.pc = machine.inspect_pc();
     }
 
+    pub fn update_exception(&mut self, except: Exception) {
+        self.except = except.to_string()
+    }
+
     pub fn running_mode_selected(&mut self) {
         match self.selected {
-            Selected::Ins => self.ins.select((self.pc - DRAM_BASE_ADDR) as usize),
+            Selected::Ins => {
+                if (DRAM_BASE_ADDR..DRAM_BASE_ADDR + (self.ins_len * 4) as u32).contains(&self.pc) {
+                    self.ins.select((self.pc - DRAM_BASE_ADDR) as usize);
+                } else {
+                    self.ins.no_select();
+                }
+            }
             Selected::Mid(m) => match m {
                 Mid::Reg => self.reg.no_select(),
                 Mid::Csr => self.csr.no_select(),
             }
             Selected::Mem => self.mem.no_select(),
         }
-    }
-
-    pub fn running_mode_selected_update(&mut self) {
-        self.ins.select((self.pc - DRAM_BASE_ADDR) as usize / 4)
     }
 
     pub fn observation_mode_selected(&mut self) {
@@ -160,23 +170,23 @@ impl EmuState {
 
     pub fn next(&mut self) {  
         match self.selected {
-            Selected::Ins => self.ins.next(),
+            Selected::Ins => self.ins.next(self.ins.list.len()),
             Selected::Mid(m) => match m {
-                Mid::Reg => self.reg.next(),
-                Mid::Csr => self.csr.next(),
+                Mid::Reg => self.reg.next(self.reg.list.len()),
+                Mid::Csr => self.csr.next(self.csr.list.len()),
             },
-            Selected::Mem => self.mem.next(),
+            Selected::Mem => self.mem.next(self.mem.list.len() / 4),
         }
     }
     
     pub fn prev(&mut self) {
         match self.selected {
-            Selected::Ins => self.ins.prev(),
+            Selected::Ins => self.ins.prev(self.ins.list.len()),
             Selected::Mid(m) => match m {
-                Mid::Reg => self.reg.prev(),
-                Mid::Csr => self.csr.prev(),
+                Mid::Reg => self.reg.prev(self.reg.list.len()),
+                Mid::Csr => self.csr.prev(self.csr.list.len()),
             },
-            Selected::Mem => self.mem.prev(),
+            Selected::Mem => self.mem.prev(self.mem.list.len() / 4),
         }
     }
 
