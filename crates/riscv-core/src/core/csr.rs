@@ -264,7 +264,13 @@ impl CsrFile {
     }
 
     pub fn inspect(&self) -> Vec<(String, u32)> {
-        vec![
+        let pmp_list = self.pmpcfg.iter().enumerate()
+            .map(|(i, cfg)| (format!("pmpcfg{}", i), (*cfg).into()))
+            .chain(self.pmpaddr.iter().enumerate()
+                .map(|(i, addr)| (format!("pmpaddr{}", i), (*addr).into()))
+            );
+
+        let mut csr_list: Vec<(String, u32)> = vec![
             ("ustatus".to_string(), 0),
             ("sstatus".to_string(), self.mstatus.read_s()),
             ("sie".to_string(), self.mie & self.mideleg),
@@ -284,10 +290,11 @@ impl CsrFile {
             ("mepc".to_string(), self.mepc),
             ("mcause".to_string(), self.mcause),
             ("mip".to_string(), self.mip),
-            ("pmpcfg0".to_string(), 0),
-            ("pmpaddr0".to_string(), 0),
-            ("mhartid".to_string(), 0),
-        ]
+        ];
+        csr_list.extend(pmp_list);
+        csr_list.push(("mhartid".to_string(), 0));
+
+        csr_list
     }
 }
 
