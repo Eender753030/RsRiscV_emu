@@ -50,7 +50,6 @@ mod tests {
 
     #[test]
     fn test_store_load_word() {
-        // 初始化 Bus (預設帶有 2GB RAM)
         let mut bus = SystemBus::default();
         let mode = PrivilegeMode::Machine;
         let addr = DRAM_BASE_ADDR;

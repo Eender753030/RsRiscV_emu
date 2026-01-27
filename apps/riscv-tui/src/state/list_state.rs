@@ -27,17 +27,17 @@ impl <T> ListStateRecord<T> {
         self.list_state.select(None);
     }
 
-    pub fn next(&mut self) {
-        self.current_select = match self.current_select >= self.list.len() - 1 {
+    pub fn next(&mut self, len: usize) {
+        self.current_select = match self.current_select >= len - 1 {
             true => 0,
             false => self.current_select + 1
         };
         self.select_curr();
     }
 
-    pub fn prev(&mut self) {
+    pub fn prev(&mut self, len: usize) {
         self.current_select = match self.current_select == 0 {
-            true => self.list.len() - 1,
+            true => len - 1,
             false => self.current_select - 1
         };
         self.select_curr();
@@ -47,7 +47,7 @@ impl <T> ListStateRecord<T> {
 impl<T> Default for ListStateRecord<T> {
     fn default() -> Self {
         let mut list_state = ListState::default();
-        list_state.select(Some(0));
+        list_state.select(None);
 
         ListStateRecord {
             list: Vec::new(),

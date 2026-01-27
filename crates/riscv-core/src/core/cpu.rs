@@ -1,5 +1,7 @@
 use riscv_decoder::prelude::*;
 
+use riscv_loader::LoadInfo;
+
 use super::{PC, RegisterFile, CsrFile, PrivilegeMode};
 use crate::core::{Access, AccessType, Mmu};
 use crate::device::bus::SystemBus;
@@ -18,6 +20,28 @@ pub struct Cpu {
 }
 
 impl Cpu {
+    pub fn load_info(&mut self, info: &LoadInfo) -> Result<(), RiscVError> {
+        for (code, addr) in info.code.iter() {
+            self.load(*addr, code)?
+        }
+        self.set_pc(info.pc_entry);
+        
+        if let Some(data_vec) = &info.data {
+            for (data, addr) in data_vec.iter() {
+                self.load(*addr, data)?
+            }
+        }
+        if let Some((start, size)) = &info.bss {
+            self.set_mem_zero(*start, *size)?
+        }
+        if let Some(other_vec) = &info.other {
+            for (data, addr) in other_vec.iter() {
+                self.load(*addr, data)?
+            }
+        }
+        Ok(())
+    }
+
     pub fn load(&mut self, addr: u32, data: &[u8]) -> Result<(), RiscVError> {
         let access = Access::new(addr, AccessType::Store);
         if self.bus.write_bytes(access, data.len(), data).is_err() {
@@ -41,14 +65,16 @@ impl Cpu {
     }
 
     pub fn run(&mut self) -> Result<(), RiscVError> {
-        loop { self.step()? }
+        loop { self.step()?; }
     }
  
-    pub fn step(&mut self) -> Result<(), RiscVError> {
-        if let Err(execpt) = self.cycle() {        
+    pub fn step(&mut self) -> Result<Option<Exception>, RiscVError> {
+        Ok(if let Err(execpt) = self.cycle() {        
             self.trap_handle(execpt);
-        }
-        Ok(())
+            Some(execpt)
+        } else {
+            None
+        })
     }
 
     fn cycle(&mut self) -> Result<(), Exception> {
@@ -64,17 +90,12 @@ impl Cpu {
         let va_access = Access::new(self.pc.get(), super::AccessType::Fetch);
 
         let pa_access = Mmu::translate(va_access, self.mode, self.csrs.check_satp(), &mut self.bus)?;
-
-        match self.bus.read_u32(pa_access) {
-            Ok(raw) => Ok(raw),
-            Err(e) => {
-                match e {
-                    Exception::LoadAccessFault(_) => Err(Exception::LoadAccessFault(va_access.addr)),
-                    Exception::StoreAccessFault(_) => Err(Exception::StoreAccessFault(va_access.addr)),
-                    _ => Err(e),
-                }
-            }
-        }    
+        
+        self.bus.read_u32(pa_access).or_else(|e| {
+            Err(match e {
+            Exception::InstructionAccessFault(_) => Exception::InstructionAccessFault(va_access.addr),
+            _ => e
+        })})
     }
 
     fn decode(&self, bytes: u32) -> Result<Instruction, Exception> {

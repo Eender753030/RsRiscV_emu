@@ -28,7 +28,7 @@ impl Memory {
 
     /// Reset `Memory`'s `space` by fill 0
     pub fn reset(&mut self) {
-        self.pages.fill(None);
+        self.pages.iter_mut().flatten().for_each(|p| p.fill(0));
     }
 
     fn translate(&self, addr: usize) -> Option<&Page> {
@@ -86,10 +86,8 @@ impl Device for Memory {
 
             let page = self.translate(addr);
             match page {
-                None => 
-                    return Err(access.to_access_exception()),
-                Some(p) => 
-                    des[start..start + len].copy_from_slice(&p[p_start..p_start + len]),
+                None    => return Err(access.to_access_exception()),
+                Some(p) => des[start..start + len].copy_from_slice(&p[p_start..p_start + len]),
             }
 
             start += len;

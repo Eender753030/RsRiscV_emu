@@ -38,3 +38,25 @@ impl From<Exception> for u32 {
         }
     }
 }
+
+impl std::fmt::Display for Exception {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            InstructionAddressMisaligned => f.write_str(" 0: Instruction Address Misaligned"),
+            Breakpoint                   => f.write_str(" 3: Breakpoint"),
+            LoadAddressMisaligned        => f.write_str(" 4: Load Address Misaligned"),
+            StoreAddressMisaligned       => f.write_str(" 6: Store Address Misaligned"),  
+            EnvironmentCallFromUMode     => f.write_str(" 8: Environment Call From U-Mode"),
+            EnvironmentCallFromSMode     => f.write_str(" 9: Environment Call From S-Mode"),
+            EnvironmentCallFromMMode     => f.write_str("11: Environment Call From M-Mode"),
+
+            InstructionAccessFault(addr) => write!(f, " 1: Instruction Access Fault (From: {:#010x})", addr),
+            IllegalInstruction(raw)      => write!(f, " 2: Illegal Instruction (Raw: {:#010x})", raw),
+            LoadAccessFault(addr)        => write!(f, " 5: Load Access Fault (From: {:#010x})", addr),
+            StoreAccessFault(addr)       => write!(f, " 7: Store Access Fault (From: {:#010x})", addr),
+            InstructionPageFault(addr)   => write!(f, "12: Instruction Page Fault (From: {:#010x})", addr),
+            LoadPageFault(addr)          => write!(f, "13: Load Page Fault (From: {:#010x})", addr),
+            StoreOrAmoPageFault(addr)    => write!(f, "15: Store/AMO Page Fault (From: {:#010x})", addr),
+        }
+    }
+}
