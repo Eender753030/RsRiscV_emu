@@ -1,12 +1,12 @@
 use riscv_decoder::instruction::InstructionData;
 use riscv_decoder::instruction::Rv32iOp::{self, *};
 
+use crate::{Exception, Result};
 use crate::engine::{Alu, Branch, Lsu};
-use crate::exception::Exception;
 use crate::core::cpu::Cpu;
 
 impl Cpu {
-    pub(crate) fn execute_rv32i(&mut self, op: Rv32iOp, data: InstructionData) -> Result<bool, Exception> {
+    pub(crate) fn execute_rv32i(&mut self, op: Rv32iOp, data: InstructionData) -> Result<bool> {
         let rs1_data = self.regs[data.rs1];
         let rs2_data = self.regs[data.rs2];
 
@@ -86,7 +86,7 @@ impl Cpu {
         })
     }
 
-    fn lsu_load(&mut self, op: Rv32iOp, src: u32, offset: i32) -> Option<Result<u32, Exception>> {
+    fn lsu_load(&mut self, op: Rv32iOp, src: u32, offset: i32) -> Option<Result<u32>> {
         let (is_signed, byte_num) = match op {
             Lb  => (true, 1),
             Lh  => (true, 2),
@@ -97,7 +97,10 @@ impl Cpu {
         };
 
         let mut lsu = Lsu::new(
-            &mut self.mmu, &mut self.bus, &self.csrs, self.mode
+            &mut self.bus, 
+            #[cfg(feature = "s")] &mut self.mmu, 
+            #[cfg(feature = "zicsr")] &self.csrs, 
+            #[cfg(feature = "zicsr")] self.mode
         );
  
         Some(if is_signed {
@@ -108,7 +111,7 @@ impl Cpu {
         )
     }
 
-    fn lsu_store(&mut self, op: Rv32iOp, des: u32, src: u32, offset: i32) -> Option<Result<(), Exception>> {
+    fn lsu_store(&mut self, op: Rv32iOp, des: u32, src: u32, offset: i32) -> Option<Result<()>> {
         let byte_num = match op {
             Sb => 1,
             Sh => 2,
@@ -116,7 +119,10 @@ impl Cpu {
             _  => return None,
         };
         let mut lsu = Lsu::new(
-            &mut self.mmu, &mut self.bus, &self.csrs, self.mode
+            &mut self.bus,
+            #[cfg(feature = "s")] &mut self.mmu, 
+            #[cfg(feature = "zicsr")] &self.csrs, 
+            #[cfg(feature = "zicsr")] self.mode
         );
 
         Some(lsu.store(des, src, offset, byte_num))
@@ -142,11 +148,21 @@ impl Cpu {
         })
     }
 
-    fn system(&self, op: Rv32iOp) -> Option<Result<(), Exception>> {
+    fn system(&self, op: Rv32iOp) -> Option<Result<()>> {
         Some(match op {
             Fence  => Ok(()),
-            Ecall  => Err(self.mode.call_exception()),
-            Ebreak => Err(Exception::Breakpoint),
+            Ecall  => {
+                #[cfg(not(feature = "zicsr"))]
+                return Some(Err(Exception::Ebreak));
+                #[cfg(feature = "zicsr")]
+                Err(self.mode.call_exception())
+            },
+            Ebreak => {
+                #[cfg(not(feature = "zicsr"))]
+                return Some(Err(Exception::Ecall));
+                #[cfg(feature = "zicsr")]
+                Err(Exception::Breakpoint)
+            }
             _ => unreachable!("Last of Rv32i op"),
         })
     }

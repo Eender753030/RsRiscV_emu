@@ -45,11 +45,10 @@ mod tests {
         let mut info = LoadInfo::default();
         // 0x00000513 -> addi x10, x0, 0
         // 0x00000073 -> ecall
-        // 0x12000073 -> sfence.vma x0, x0
+
         let code_bytes = vec![
             0x13, 0x05, 0x00, 0x00, 
             0x73, 0x00, 0x00, 0x00,
-            0x73, 0x00, 0x00, 0x12,
         ];
         info.code = vec![(code_bytes, 0x80000000)];
         
@@ -62,6 +61,5 @@ mod tests {
         assert!(output.contains(&"main:".to_string()));
         assert!(output[1].contains("addi    x10, x0, 0"));
         assert!(output[2].contains("ecall"));
-        assert!(output[3].contains("sfence.vma   x0, x0"));
     }
 }

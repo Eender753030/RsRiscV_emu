@@ -20,6 +20,7 @@ pub trait DebugInterface {
 
     fn inspect_pc(&self) -> u32;
 
+    #[cfg(feature = "zicsr")]
     fn inspect_csrs(&self) -> Vec<(String, u32)>;
 
     fn inspect_mem(&self, start: u32, len: usize) -> Vec<u8>;

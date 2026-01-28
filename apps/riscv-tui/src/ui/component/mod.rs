@@ -15,6 +15,7 @@ use crate::state::EmuState;
 pub use instruction::Instruction;
 pub use exception::Exception;
 pub use memory::Memory;
+#[cfg(feature = "zicsr")]
 pub use mid::csr::Csr;
 pub use mid::register::Register;
 

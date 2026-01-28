@@ -65,6 +65,7 @@ fn render_content(f: &mut Frame, area: Rect, emu: &mut EmuState) {
     Instruction::render(f, info_layout[0], emu);
     match emu.mid_selected {
         Mid::Reg => Register::render(f, info_layout[1], emu),
+        #[cfg(feature = "zicsr")]
         Mid::Csr => Csr::render(f, info_layout[1], emu),
     }
     Memory::render(f, info_layout[2], emu);

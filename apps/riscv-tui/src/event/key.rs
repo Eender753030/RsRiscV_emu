@@ -11,7 +11,7 @@ pub enum KeyControl {
     GoRight,
     NextPage,
     PrevPage,
-    ChangeMid,
+    #[cfg(feature = "zicsr")] ChangeMid,
     ChangeMode,
     Reset,
     Step,
@@ -24,6 +24,7 @@ pub fn poll_key_event(keycode: KeyCode) -> Option<KeyControl> {
         KeyCode::Char('r' | 'R') => Reset,
         KeyCode::Char('s' | 'S') => Step,
         KeyCode::Char('p' | 'P') => RunToEnd,
+        #[cfg(feature = "zicsr")]
         KeyCode::Char('c' | 'C') => ChangeMid,
         KeyCode::Char(']')       => NextPage,
         KeyCode::Char('[')       => PrevPage,

@@ -3,6 +3,8 @@ use std::time::Duration;
 use anyhow::Result;
 
 use riscv_core::RiscV;
+#[cfg(not(feature = "zicsr"))]
+use riscv_core::RiscVError;
 use riscv_disasm::disasm;
 use riscv_loader::LoadInfo;
 
@@ -44,6 +46,11 @@ impl EmuApp {
             self.event()?;
 
             if self.state.mode == EmuMode::Running {
+                #[cfg(not(feature = "zicsr"))]
+                if self.step().is_err() {
+                    self.state.mode = EmuMode::Stay 
+                }
+                #[cfg(feature = "zicsr")]
                 self.step()?;
             }
         }
@@ -53,6 +60,8 @@ impl EmuApp {
     fn step(&mut self) -> Result<()> {
         if let Some(except) = self.machine.step()? {
             self.state.update_exception(except);
+            #[cfg(not(feature = "zicsr"))]
+            return Err(anyhow::Error::new(RiscVError::Exception));
         }
         self.state.update_data(&self.machine);
         Ok(())
@@ -96,6 +105,7 @@ impl EmuApp {
             GoRight => self.state.go_right(),
             NextPage => self.state.next_page(&self.machine),
             PrevPage => self.state.prev_page(&self.machine),
+            #[cfg(feature = "zicsr")]
             ChangeMid => self.state.change_mid(),
             _ => {},
         }
@@ -105,6 +115,7 @@ impl EmuApp {
         use KeyControl::*;
         match key {
             Quit => self.should_quit = true,
+            #[cfg(feature = "zicsr")]
             ChangeMid => self.state.change_mid(),
             ChangeMode => {
                 self.state.observation_mode_selected();
@@ -116,7 +127,13 @@ impl EmuApp {
                 self.state.update_data(&self.machine);
                 self.state.except = "".to_string();
             },
-            Step     => self.step()?,
+            Step     => {
+                #[cfg(not(feature = "zicsr"))]
+                if self.step().is_err() {
+                }
+                #[cfg(feature = "zicsr")]
+                self.step()?
+            }
             RunToEnd => self.state.mode = EmuMode::Running,
             _ => {},
         }

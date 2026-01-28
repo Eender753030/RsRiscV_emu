@@ -4,6 +4,17 @@ version.workspace = true
 authors.workspace = true
 edition.workspace = true
 
+[features]
+default = []
+
+m = ["riscv-core/m", "riscv-disasm/m"]
+zicsr = ["riscv-core/zicsr", "riscv-disasm/zicsr"]
+zifencei = ["riscv-core/zifencei", "riscv-disasm/zifencei"]
+
+s = ["riscv-core/s", "riscv-disasm/s"]
+
+full = ["s", "m", "zicsr", "zifencei"]
+
 [dependencies]
 riscv-core = {workspace = true}
 riscv-loader = {workspace = true}

@@ -4,6 +4,17 @@ version.workspace = true
 authors.workspace = true
 edition.workspace = true
 
+[features]
+default = []
+
+m = ["riscv-decoder/m"]
+zicsr = ["riscv-decoder/zicsr"]
+zifencei = ["riscv-decoder/zifencei"]
+
+s = ["zicsr", "riscv-decoder/s"] # Supervisor
+
+full = ["s", "m", "zicsr", "zifencei"]
+
 [dependencies]
 riscv-decoder = {workspace = true}
 riscv-loader = {workspace = true}

@@ -1,10 +1,5 @@
 use Exception::*;
 
-pub enum Result<T> {
-    Ok(T),
-    Err(Exception),
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Exception {
     InstructionAddressMisaligned,
@@ -21,6 +16,9 @@ pub enum Exception {
     InstructionPageFault(u32),
     LoadPageFault(u32),
     StoreOrAmoPageFault(u32),
+    
+    #[cfg(not(feature = "zicsr"))] Ecall, // Custom
+    #[cfg(not(feature = "zicsr"))] Ebreak, // Custom
 }
 
 impl From<Exception> for u32 {
@@ -40,6 +38,9 @@ impl From<Exception> for u32 {
             InstructionPageFault(_)      => 12,
             LoadPageFault(_)             => 13,
             StoreOrAmoPageFault(_)       => 15,
+        
+            #[cfg(not(feature = "zicsr"))] Ecall  => 100,
+            #[cfg(not(feature = "zicsr"))] Ebreak => 101,
         }
     }
 }
@@ -62,6 +63,9 @@ impl std::fmt::Display for Exception {
             InstructionPageFault(addr)   => write!(f, "12: Instruction Page Fault (From: {:#010x})", addr),
             LoadPageFault(addr)          => write!(f, "13: Load Page Fault (From: {:#010x})", addr),
             StoreOrAmoPageFault(addr)    => write!(f, "15: Store/AMO Page Fault (From: {:#010x})", addr),
+
+            #[cfg(not(feature = "zicsr"))] Ecall  => f.write_str("100(Custom): Ecall"),
+            #[cfg(not(feature = "zicsr"))] Ebreak => f.write_str("101(Custom): Ebreak"),
         }
     }
 }

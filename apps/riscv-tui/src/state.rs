@@ -10,7 +10,7 @@ use list_state::ListStateRecord;
 pub enum Mid {
     #[default]
     Reg,
-    Csr,
+    #[cfg(feature = "zicsr")] Csr,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -33,6 +33,7 @@ pub enum EmuMode {
 pub struct EmuState {
     pub ins: ListStateRecord<String>,
     pub reg: ListStateRecord<u32>,
+    #[cfg(feature = "zicsr")]
     pub csr: ListStateRecord<(String, u32)>,
     pub mem: ListStateRecord<u8>,
     pub pc: u32,
@@ -54,6 +55,7 @@ impl EmuState {
 
         let mut ins = ListStateRecord::new(ins_list);
         let reg = ListStateRecord::new(machine.inspect_regs().into_iter().collect());
+        #[cfg(feature = "zicsr")]
         let csr = ListStateRecord::new(machine.inspect_csrs());
         let mem = ListStateRecord::new(machine.inspect_mem(dram_base, page_size));
         let except = "".to_string();
@@ -67,7 +69,8 @@ impl EmuState {
         ins.select_curr();
 
         EmuState { 
-            ins, reg, csr, mem, except, pc, 
+            #[cfg(feature = "zicsr")] csr,
+            ins, reg, mem, except, pc, 
             mode, selected, mid_selected,
             page_selected, ins_len,
             machine_info,
@@ -79,7 +82,9 @@ impl EmuState {
         let page_base = dram_base + (self.page_selected * page_size) as u32;
 
         self.reg.list = machine.inspect_regs().into_iter().collect();
+        #[cfg(feature = "zicsr")] {
         self.csr.list = machine.inspect_csrs();
+        }
         self.mem.list = machine.inspect_mem(page_base, page_size);
         self.pc = machine.inspect_pc();
     }
@@ -99,6 +104,7 @@ impl EmuState {
             }
             Selected::Mid(m) => match m {
                 Mid::Reg => self.reg.no_select(),
+                #[cfg(feature = "zicsr")]
                 Mid::Csr => self.csr.no_select(),
             }
             Selected::Mem => self.mem.no_select(),
@@ -110,6 +116,7 @@ impl EmuState {
             Selected::Ins => self.ins.select_curr(),
             Selected::Mid(m) => match m {
                 Mid::Reg => self.reg.select_curr(),
+                #[cfg(feature = "zicsr")]
                 Mid::Csr => self.csr.select_curr(),
             }
             Selected::Mem => self.mem.select_curr(),
@@ -126,6 +133,7 @@ impl EmuState {
             Selected::Mid(mid) => {
                 match mid {
                     Mid::Reg => self.reg.no_select(),
+                    #[cfg(feature = "zicsr")]
                     Mid::Csr => self.csr.no_select(),
                 }
                 self.ins.select_curr();
@@ -135,6 +143,7 @@ impl EmuState {
                 self.mem.no_select();
                 match self.mid_selected {
                     Mid::Reg => self.reg.select_curr(),
+                    #[cfg(feature = "zicsr")]
                     Mid::Csr => self.csr.select_curr(),
                 }
                 Selected::Mid(self.mid_selected)
@@ -148,6 +157,7 @@ impl EmuState {
                 self.ins.no_select();
                 match self.mid_selected {
                     Mid::Reg => self.reg.select_curr(),
+                    #[cfg(feature = "zicsr")]
                     Mid::Csr => self.csr.select_curr(),
                 }
                 Selected::Mid(self.mid_selected)
@@ -155,6 +165,7 @@ impl EmuState {
             Selected::Mid(mid) => {
                 match mid {
                     Mid::Reg => self.reg.no_select(),
+                    #[cfg(feature = "zicsr")]
                     Mid::Csr => self.csr.no_select(),
                 }
                 self.mem.select_curr();
@@ -173,6 +184,7 @@ impl EmuState {
             Selected::Ins => self.ins.next(self.ins.list.len()),
             Selected::Mid(m) => match m {
                 Mid::Reg => self.reg.next(self.reg.list.len()),
+                #[cfg(feature = "zicsr")]
                 Mid::Csr => self.csr.next(self.csr.list.len()),
             },
             Selected::Mem => self.mem.next(self.mem.list.len() / 4),
@@ -184,6 +196,7 @@ impl EmuState {
             Selected::Ins => self.ins.prev(self.ins.list.len()),
             Selected::Mid(m) => match m {
                 Mid::Reg => self.reg.prev(self.reg.list.len()),
+                #[cfg(feature = "zicsr")]
                 Mid::Csr => self.csr.prev(self.csr.list.len()),
             },
             Selected::Mem => self.mem.prev(self.mem.list.len() / 4),
@@ -210,6 +223,7 @@ impl EmuState {
         }
     }
 
+    #[cfg(feature = "zicsr")]
     pub fn change_mid(&mut self) {
         match self.mid_selected {
             Mid::Reg => self.mid_selected = Mid::Csr,

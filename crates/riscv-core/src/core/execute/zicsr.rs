@@ -1,11 +1,11 @@
 use riscv_decoder::instruction::InstructionData;
 use riscv_decoder::instruction::ZicsrOp;
 
-use crate::exception::Exception;
+use crate::Result;
 use crate::core::cpu::Cpu;
 
 impl Cpu {
-    pub(crate) fn execute_zicsr(&mut self, op: ZicsrOp, data: InstructionData) -> Result<(), Exception> {
+    pub(crate) fn execute_zicsr(&mut self, op: ZicsrOp, data: InstructionData) -> Result<()> {
         let addr = (data.imm & 0xfff) as u16;
         let (val, check_val) = if op.is_imm() {
             (data.rs1 as u32, data.rs1)

@@ -1,6 +1,7 @@
 use modular_bitfield::prelude::*;
 
-use crate::core::{AccessType, PrivilegeMode}; 
+use crate::core::PrivilegeMode; 
+use crate::core::access::AccessType;
 use crate::core::mmu::sv32::Sv32Pte;
 
 #[bitfield]
