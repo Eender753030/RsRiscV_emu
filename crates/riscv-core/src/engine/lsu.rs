@@ -1,20 +1,32 @@
 use crate::{Exception, Result};
+#[cfg(feature = "zicsr")]
 use crate::core::{CsrFile, PrivilegeMode};
+#[cfg(feature = "zicsr")]
 use crate::core::Mmu;
 use crate::core::access::{Access, AccessType, Physical, Virtual};
 use crate::device::bus::SystemBus;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Lsu<'a> {
-    mmu: &'a mut Mmu,
     bus: &'a mut SystemBus,
-    csrs: &'a CsrFile,
-    mode: PrivilegeMode, 
+    #[cfg(feature = "zicsr")] mmu: &'a mut Mmu,
+    #[cfg(feature = "zicsr")] csrs: &'a CsrFile,
+    #[cfg(feature = "zicsr")] mode: PrivilegeMode, 
 }
 
 impl<'a> Lsu<'a> {
-    pub fn new(mmu: &'a mut Mmu, bus: &'a mut SystemBus, csrs: &'a CsrFile, mode: PrivilegeMode) -> Self {
-        Self { mmu, bus, csrs, mode }
+    pub fn new(
+        bus: &'a mut SystemBus, 
+        #[cfg(feature = "zicsr")] mmu: &'a mut Mmu, 
+        #[cfg(feature = "zicsr")] csrs: &'a CsrFile, 
+        #[cfg(feature = "zicsr")] mode: PrivilegeMode
+    ) -> Self {
+        Self { 
+            bus,
+            #[cfg(feature = "zicsr")] mmu,  
+            #[cfg(feature = "zicsr")] csrs, 
+            #[cfg(feature = "zicsr")] mode 
+        }
     }
 
     pub fn load(&mut self, src: u32, offset: i32, num: usize) -> Result<u32> {
@@ -50,18 +62,23 @@ impl<'a> Lsu<'a> {
         })
     }
 
+    #[allow(unused_variables)]
     fn pre_work(&mut self, va_access: Access<Virtual>, num: usize) -> Result<Access<Physical>> {
-        let pa_access = self.mmu.translate(
-            va_access, self.mode, self.csrs.check_satp(), self.bus
-        )?;   
-        
-        self.csrs.pmp_check(pa_access, num, self.mode).map_err(|e| match e {
-            Exception::LoadAccessFault(_)  => Exception::LoadAccessFault(va_access.addr),
-            Exception::StoreAccessFault(_) => Exception::StoreAccessFault(va_access.addr),
-            _ => e,
-        })?;
-
-        Ok(pa_access)
+        #[cfg(not(feature = "zicsr"))] 
+        return  Ok(va_access.bypass());
+    
+        #[cfg(feature = "zicsr")] {
+            let pa_access = self.mmu.translate(
+                va_access, self.mode, self.csrs.check_satp(), self.bus
+            )?;   
+            
+            self.csrs.pmp_check(pa_access, num, self.mode).map_err(|e| match e {
+                Exception::LoadAccessFault(_)  => Exception::LoadAccessFault(va_access.addr),
+                Exception::StoreAccessFault(_) => Exception::StoreAccessFault(va_access.addr),
+                _ => e,
+            })?;
+            Ok(pa_access)
+        }
     }
 }
 
@@ -69,15 +86,24 @@ impl<'a> Lsu<'a> {
 mod tests {
     use super::Lsu;
     use crate::device::bus::{SystemBus, DRAM_BASE_ADDR};
+    #[cfg(feature = "zicsr")]
     use crate::core::{CsrFile, Mmu, PrivilegeMode};
 
     #[test]
     fn test_store_load_word() {
-        let mut mmu = Mmu::default();
         let mut bus = SystemBus::default();
+        #[cfg(feature = "zicsr")]
+        let mut mmu = Mmu::default();
+        #[cfg(feature = "zicsr")]
         let csrs = CsrFile::default();
+        #[cfg(feature = "zicsr")]
         let mode = PrivilegeMode::Machine;
-        let mut lsu = Lsu::new(&mut mmu, &mut bus, &csrs, mode);
+        let mut lsu = Lsu::new(
+            &mut bus,
+            #[cfg(feature = "zicsr")] &mut mmu,
+            #[cfg(feature = "zicsr")] &csrs, 
+            #[cfg(feature = "zicsr")] mode
+        );
         let addr = DRAM_BASE_ADDR;
         let val = 0xDEADBEEF;
 
@@ -89,11 +115,20 @@ mod tests {
 
     #[test]
     fn test_offset_handling() {
-        let mut mmu = Mmu::default();
         let mut bus = SystemBus::default();
-        let mode = PrivilegeMode::Machine;
+        #[cfg(feature = "zicsr")]
+        let mut mmu = Mmu::default();
+        #[cfg(feature = "zicsr")]
         let csrs = CsrFile::default();
-        let mut lsu = Lsu::new(&mut mmu, &mut bus, &csrs, mode);
+        #[cfg(feature = "zicsr")]
+        let mode = PrivilegeMode::Machine;
+
+        let mut lsu = Lsu::new(
+            &mut bus,
+            #[cfg(feature = "zicsr")] &mut mmu,
+            #[cfg(feature = "zicsr")] &csrs, 
+            #[cfg(feature = "zicsr")] mode
+        );
         let base = DRAM_BASE_ADDR + 0x100;
         let offset = -4; 
         let val = 0x12345678;
@@ -110,12 +145,21 @@ mod tests {
 
     #[test]
     fn test_sign_extension() {
-        let mut mmu = Mmu::default();
         let mut bus = SystemBus::default();
-        let mode = PrivilegeMode::Machine;
-        let addr = DRAM_BASE_ADDR + 0x20;
+        let addr = DRAM_BASE_ADDR + 0x20;     
+        #[cfg(feature = "zicsr")]
+        let mut mmu = Mmu::default();
+        #[cfg(feature = "zicsr")]
         let csrs = CsrFile::default();
-        let mut lsu = Lsu::new(&mut mmu, &mut bus, &csrs, mode);
+        #[cfg(feature = "zicsr")]
+        let mode = PrivilegeMode::Machine;
+
+        let mut lsu = Lsu::new(
+            &mut bus,
+            #[cfg(feature = "zicsr")] &mut mmu,
+            #[cfg(feature = "zicsr")] &csrs, 
+            #[cfg(feature = "zicsr")] mode
+        );
 
         lsu.store(addr, 0xFF, 0, 1).unwrap();
 

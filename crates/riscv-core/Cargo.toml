@@ -8,7 +8,10 @@ edition.workspace = true
 default = []
 
 m = ["riscv-decoder/m"]
+zicsr = ["riscv-decoder/zicsr"]
 zifencei = ["riscv-decoder/zifencei"]
+
+std = ["m", "zicsr", "zifencei"]
 
 [dependencies]
 riscv-decoder = {workspace = true}

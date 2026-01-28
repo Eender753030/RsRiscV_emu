@@ -8,7 +8,10 @@ edition.workspace = true
 default = []
 
 m = []
+zicsr = []
 zifencei = []
+
+std = ["m", "zicsr", "zifencei"]
 
 [dependencies]
 thiserror = "2"

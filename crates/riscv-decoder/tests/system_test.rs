@@ -1,15 +1,23 @@
+#![cfg(any(feature = "zicsr", feature = "zifencei"))]
+
 use riscv_decoder::decoder::decode;
 use riscv_decoder::instruction::{Instruction, InstructionData};
-use riscv_decoder::instruction::{PrivilegeOp, ZicsrOp}; 
+#[cfg(feature = "zicsr")]
+use riscv_decoder::instruction::PrivilegeOp;
+#[cfg(feature = "zicsr")]
+use riscv_decoder::instruction::ZicsrOp; 
 #[cfg(feature = "zifencei")]
 use riscv_decoder::instruction::ZifenceiOp;
 
+
+#[cfg(feature = "zicsr")]
 fn build_zicsr_data(op: ZicsrOp, rd: u8, rs1: u8, rs2: u8, imm: i32) -> Instruction {
     let data = InstructionData { rd, rs1, rs2, imm };
-    Instruction::Ziscr(op, data)
+    Instruction::Zicsr(op, data)
 }
 
 #[test]
+#[cfg(feature = "zicsr")]
 fn  test_zicsr() {
     // csrrw x0, mstatus, x5
     let ins1 = 0x30029073;
@@ -21,14 +29,14 @@ fn  test_zicsr() {
     assert_eq!(decode(ins1), Ok(expect1));
     assert_eq!(decode(ins2), Ok(expect2));
 
-    if let Instruction::Ziscr(op1, _) = decode(ins1).unwrap() {
+    if let Instruction::Zicsr(op1, _) = decode(ins1).unwrap() {
         assert!(op1.is_rw());
         assert!(!op1.is_imm());
     } else {
         unreachable!("Should be Base of Instruction");
     }
     
-    if let Instruction::Ziscr(op2, _) = decode(ins2).unwrap() {
+    if let Instruction::Zicsr(op2, _) = decode(ins2).unwrap() {
         assert!(op2.is_rc());
             assert!(op2.is_imm());
     } else {
@@ -50,6 +58,7 @@ fn  test_zifencei() {
 
 
 #[test]
+#[cfg(feature = "zicsr")]
 fn  test_privileged() {
     // sret
     let ins1 = 0x10200073;

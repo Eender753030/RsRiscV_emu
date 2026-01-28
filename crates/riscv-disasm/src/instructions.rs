@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use riscv_decoder::instruction::Instruction::{self, *};
 
+#[cfg(feature = "zicsr")]
 use crate::csr_addr::CsrAddr;
 
 pub fn ins_to_string(ins: Instruction, addr: u32, sym_table: &HashMap<u32, String>) -> String {   
@@ -43,6 +44,7 @@ pub fn ins_to_string(ins: Instruction, addr: u32, sym_table: &HashMap<u32, Strin
                 format!("{:<7} x{}, x{}, x{}", op, data.rd, data.rs1, data.rs2)
             }
         },
+        #[cfg(feature = "zicsr")]
         Privileged(op, data) => {
             if op.is_fence() {
                 format!("{:<12} x{}, x{}", op, data.rs1, data.rs2)
@@ -54,7 +56,8 @@ pub fn ins_to_string(ins: Instruction, addr: u32, sym_table: &HashMap<u32, Strin
         M(op, data) => {
             format!("{:<7} x{}, x{}, x{}", op, data.rd, data.rs1, data.rs2)
         },
-        Ziscr(op, data) => {
+        #[cfg(feature = "zicsr")]
+        Zicsr(op, data) => {
             let csr_str = CsrAddr::try_from(data.imm as u32 & 0xfff)
                 .map(|addr| addr.to_string())
                 .unwrap_or_else(|addr| format!("{:#x}",addr));

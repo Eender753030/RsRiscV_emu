@@ -3,19 +3,27 @@ use riscv_decoder::prelude::*;
 use riscv_loader::LoadInfo;
 
 use crate::{Exception, Result, RiscVError, StdResult};
+#[cfg(feature = "zicsr")]
 use crate::core::Mmu;
+#[cfg(feature = "zicsr")]
+use crate::core::csr::CsrFile;
+#[cfg(feature = "zicsr")]
+use crate::core::privilege::PrivilegeMode;
 use crate::core::access::{Access, AccessType};
 use crate::device::bus::SystemBus;
 use crate::device::Device;
 use crate::debug::*;
-use super::{PC, RegisterFile, CsrFile, PrivilegeMode};
 
-#[derive(Clone, PartialEq, Default)]
+use super::{PC, RegisterFile};
+#[derive(Debug, Clone, PartialEq, Default)]
 pub struct Cpu {
+    #[cfg(feature = "zicsr")]
     pub(crate) mode: PrivilegeMode,
     pub(crate) regs: RegisterFile,
     pub(crate) pc: PC,
+    #[cfg(feature = "zicsr")]
     pub(crate) csrs: CsrFile,
+    #[cfg(feature = "zicsr")]
     pub(crate) mmu: Mmu,
     pub(crate) bus: SystemBus,
 }
@@ -69,10 +77,15 @@ impl Cpu {
         loop { self.step()?; }
     }
  
-    pub fn step(&mut self) -> StdResult<Option<Exception>, RiscVError> {
-        Ok(if let Err(execpt) = self.cycle() {        
+    pub fn step(&mut self) -> StdResult<Option<Exception>, RiscVError> {      
+        Ok(if let Err(execpt) = self.cycle() { 
+            #[cfg(feature = "zicsr")]       
             self.trap_handle(execpt);
-            Some(execpt)
+            if cfg!(feature = "zicsr") {
+                Some(execpt)
+            } else {
+                None
+            }    
         } else {
             None
         })
@@ -90,8 +103,13 @@ impl Cpu {
     fn fetch(&mut self) -> Result<u32> {
         let va_access = Access::new(self.pc.get(), AccessType::Fetch);
 
+        #[cfg(not(feature = "zicsr"))]
+        let pa_access = va_access;
+
+        #[cfg(feature = "zicsr")]
         let pa_access = self.mmu.translate(va_access, self.mode, self.csrs.check_satp() , &mut self.bus)?;
 
+        #[cfg(feature = "zicsr")]
         self.csrs.pmp_check(pa_access, 4, self.mode).map_err(|e| match e {
             Exception::InstructionAccessFault(_) => Exception::InstructionAccessFault(va_access.addr),
             _ => e
@@ -113,12 +131,14 @@ impl Cpu {
             Instruction::Base(op, data)  => if self.execute_rv32i(op, data)? {
                     return Ok(());
             },
+            #[cfg(feature = "zicsr")]
             Instruction::Privileged(op, data)  => if self.execute_privileged(op, data)? {
                 return Ok(())
             },
             #[cfg(feature = "m")]
             Instruction::M(op, data)     => self.execute_m(op, data),
-            Instruction::Ziscr(op, data) => self.execute_zicsr(op, data)?,
+            #[cfg(feature = "zicsr")]
+            Instruction::Zicsr(op, data) => self.execute_zicsr(op, data)?,
             #[cfg(feature = "zifencei")]
             Instruction::Zifencei(_, _)  => {},          
         }
@@ -126,6 +146,7 @@ impl Cpu {
         Ok(())
     }
 
+    #[cfg(feature = "zicsr")]
     fn trap_handle(&mut self, except: Exception) {
         let (mode, pc) = self.csrs.trap_entry(self.pc.get(), except, self.mode);
         self.pc.directed_addressing(pc);
@@ -133,11 +154,13 @@ impl Cpu {
     }
 
     pub fn reset(&mut self) {
-        self.mode = PrivilegeMode::default();
         self.regs.reset();
-        self.csrs.reset();
         self.pc.reset();
         self.bus.reset_ram();
+        #[cfg(feature = "zicsr")] {
+            self.mode = PrivilegeMode::default();
+            self.csrs.reset();
+        }
     }
 }
 
@@ -150,6 +173,7 @@ impl DebugInterface for Cpu {
         self.pc.get()
     }
 
+    #[cfg(feature = "zicsr")]
     fn inspect_csrs(&self) -> Vec<(String, u32)> {
         self.csrs.inspect()
     }
@@ -166,19 +190,6 @@ impl DebugInterface for Cpu {
         let (dram_size, dram_base, page_size) = self.bus.ram_info();
 
         MachineInfo::new(dram_size, dram_base, page_size)
-    }
-}
-
-impl std::fmt::Debug for Cpu {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "Cpu {{")?;
-        writeln!(f, " PC: {:#08x}", self.pc.get())?;
-        write!(f, " Registers {{")?;
-        self.regs.iter().enumerate().try_for_each(|(id, regs)|
-            write!(f, " x{}: {}", id, *regs as i32)
-        )?;
-        writeln!(f, " }}")?;
-        write!(f, " {:?}", self.bus)
     }
 }
 

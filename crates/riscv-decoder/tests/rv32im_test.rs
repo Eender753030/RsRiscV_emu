@@ -1,3 +1,5 @@
+#![allow(irrefutable_let_patterns)]
+
 use riscv_decoder::DecodeError;
 use riscv_decoder::decoder::decode;
 use riscv_decoder::instruction::{Instruction, InstructionData, Rv32iOp};

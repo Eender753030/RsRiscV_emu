@@ -1,16 +1,17 @@
-use riscv_decoder::decoder::decode;
-use riscv_decoder::instruction::Instruction;
-
-use crate::Exception;
+#[cfg(feature = "zicsr")] use riscv_decoder::decoder::decode;
+#[cfg(feature = "zicsr")] use riscv_decoder::instruction::Instruction;
+#[cfg(feature = "zicsr")] use crate::Exception;
+#[cfg(feature = "zicsr")] use crate::core::privilege::PrivilegeMode;
 use crate::core::access::{Access, AccessType};
 use crate::core::cpu::Cpu;
 use crate::constance::DRAM_BASE_ADDR;
-use crate::core::privilege::PrivilegeMode;
+
 
 #[test]
 fn test_cpu_initial_state() {
     let cpu = Cpu::default();
     assert_eq!(cpu.pc.get(), DRAM_BASE_ADDR, "PC should start at DRAM base");
+    #[cfg(feature = "zicsr")]
     assert_eq!(cpu.mode, PrivilegeMode::Machine, "Should start in Machine Mode");
     assert_eq!(cpu.regs[1], 0);
 }
@@ -78,6 +79,7 @@ fn test_cycle_execution_bne_taken() {
 }
 
 #[test]
+#[cfg(feature = "zicsr")]
 fn test_exception_trap_handling() {
     let mut cpu = Cpu::default();
 
@@ -101,6 +103,7 @@ fn test_exception_trap_handling() {
 }
 
 #[test]
+#[cfg(feature = "zicsr")]
 fn test_sfence_vma() {
     let mut cpu = Cpu::default();
     
