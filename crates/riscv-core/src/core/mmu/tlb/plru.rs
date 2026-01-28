@@ -45,4 +45,10 @@ impl PlruState {
             _ => unreachable!("There are only 4-ways for TLB"),
         }
     }
+
+    pub fn flush(&mut self) {
+        self.set_b0(0);
+        self.set_b1(0);
+        self.set_b2(0);
+    }
 }

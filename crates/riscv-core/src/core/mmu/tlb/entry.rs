@@ -89,4 +89,8 @@ impl TlbEntry {
             AccessType::Store => self.is_accessed() && self.is_dirty(),
         }
     }
+
+    pub fn flush(&mut self) {
+        self.set_valid(0);
+    }
 }

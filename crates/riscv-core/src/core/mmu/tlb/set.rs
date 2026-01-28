@@ -26,4 +26,8 @@ impl TlbSet {
     pub fn update(&mut self, way: usize) {
         self.plru.update(way);
     }
+
+    pub fn flush(&mut self) {
+        self.entries.iter_mut().for_each(|entry| entry.flush());
+    } 
 }

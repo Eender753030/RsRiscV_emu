@@ -140,23 +140,40 @@ impl Mmu {
         let offset_mask = level_size - 1;
         (ppn << 12) | (v_addr & offset_mask)
     }
+
+    pub fn flush_tlb(&mut self, v_addr: u32, asid: u32) {
+        let vpn = v_addr >> 12; 
+        self.tlb.flush(vpn, asid as u16);
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use crate::Exception;
     use crate::core::Mmu;
+    use crate::core::mmu::{Sv32Pte};
     use crate::core::privilege::PrivilegeMode;
     use crate::device::bus::SystemBus;
     use crate::core::mmu::access::{Access, AccessType};
+    use crate::core::mmu::tlb::TlbResult;
     
-    fn make_pte(ppn: u32, v: bool, r: bool, w: bool, x: bool, u: bool, a: bool, d: bool) -> u32 {
+    fn make_pte(ppn: u32, 
+        v: bool, 
+        r: bool, 
+        w: bool, 
+        x: bool, 
+        u: bool, 
+        g: bool,
+        a: bool, 
+        d: bool
+    ) -> u32 {
         let mut pte = 0;
         if v { pte |= 1 << 0; }
         if r { pte |= 1 << 1; }
         if w { pte |= 1 << 2; }
         if x { pte |= 1 << 3; }
         if u { pte |= 1 << 4; }
+        if g { pte |= 1 << 5; }
         if a { pte |= 1 << 6; }
         if d { pte |= 1 << 7; }
         pte |= (ppn & 0x3FFFFF) << 10;
@@ -209,11 +226,11 @@ mod tests {
         let vpn0 = (va >> 12) & 0x3FF;
 
         let root_pte_addr = (root_ppn << 12) + vpn1 * 4;
-        let root_pte_val = make_pte(leaf_pt_ppn, true, false, false, false, false, false, false); // V=1, RWX=0 (Pointer)
+        let root_pte_val = make_pte(leaf_pt_ppn, true, false, false, false, false, false, false, false); // V=1, RWX=0 (Pointer)
         write_pte(&mut bus, root_pte_addr, root_pte_val);
 
         let leaf_pte_addr = (leaf_pt_ppn << 12) + vpn0 * 4;
-        let leaf_pte_val = make_pte(target_ppn, true, true, true, false, false, false, false);
+        let leaf_pte_val = make_pte(target_ppn, true, true, true, false, false, false, false, false);
         write_pte(&mut bus, leaf_pte_addr, leaf_pte_val);
 
         let access = Access::new(va, AccessType::Load);
@@ -239,7 +256,7 @@ mod tests {
 
         let root_pte_addr = (root_ppn << 12) + vpn1 * 4;
 
-        let root_pte_val = make_pte(target_megapage_ppn, true, true, true, false, false, false, false);
+        let root_pte_val = make_pte(target_megapage_ppn, true, true, true, false, false, false, false, false);
         write_pte(&mut bus, root_pte_addr, root_pte_val);
 
         let access = Access::new(va, AccessType::Store);
@@ -267,7 +284,7 @@ mod tests {
         let vpn1 = (va >> 22) & 0x3FF;
         let root_pte_addr = (root_ppn << 12) + vpn1 * 4;
  
-        let pte_val = make_pte(target_ppn, true, true, false, false, false, true, false); 
+        let pte_val = make_pte(target_ppn, true, true, false, false, false, false, true, false); 
         write_pte(&mut bus, root_pte_addr, pte_val);
 
         let load_access = Access::new(va, AccessType::Load);
@@ -318,10 +335,10 @@ mod tests {
         let vpn0 = (va >> 12) & 0x3FF;
 
         let root_pte_addr = (root_ppn << 12) + vpn1 * 4;
-        write_pte(&mut bus, root_pte_addr, make_pte(leaf_pt_ppn, true, false, false, false, false, false, false));
+        write_pte(&mut bus, root_pte_addr, make_pte(leaf_pt_ppn, true, false, false, false, false, false, false, false));
 
         let leaf_pte_addr = (leaf_pt_ppn << 12) + vpn0 * 4;
-        write_pte(&mut bus, leaf_pte_addr, make_pte(target_ppn, true, true, true, false, false, false, false));
+        write_pte(&mut bus, leaf_pte_addr, make_pte(target_ppn, true, true, true, false, false, false, false, false));
 
         let access = Access::new(va, AccessType::Load);
         let res = mmu.translate(access, PrivilegeMode::Supervisor, Some((0, root_ppn)), &mut bus);
@@ -338,5 +355,70 @@ mod tests {
         assert_eq!(res2.unwrap().addr, target_ppn << 12);
         assert_eq!(mmu.hit_count, 1, "Second access should be a hit");
         assert_eq!(mmu.miss_count, 1, "Miss count should not increase");
+    }
+
+    #[test]
+    fn test_flush_tlb() {
+        let mut mmu = Mmu::default();
+
+        // 1. VPN=0x10, ASID=1, Global=0
+        // 2. VPN=0x20, ASID=1, Global=1
+        // 3. VPN=0x10, ASID=2, Global=0 (Same VPN as A)
+        let ppn_a = 0xABC;
+        let ppn_b = 0xDEF;
+        let ppn_c = 0x123;
+
+        // Entry 1
+        let pte_a = make_pte(ppn_a, true, true, true, false, true, false, true, true); // V, R, W, U
+        mmu.tlb.fill(0x10 << 12, Sv32Pte::from(pte_a), 1, false);
+
+        // Entry 2
+        let pte_b = make_pte(ppn_b, true, true, false, false, false, true, true, true); 
+        mmu.tlb.fill(0x20 << 12, Sv32Pte::from(pte_b), 1, false);
+
+        // Entry 3
+        let pte_c = make_pte(ppn_c, true, true, true, false, true, false, true, true);
+        mmu.tlb.fill(0x10 << 12, Sv32Pte::from(pte_c), 2, false);
+
+        mmu.flush_tlb(0x10 << 12, 1);
+
+        // Check 1: lookup should Miss
+        let res1 = mmu.tlb.lookup(0x10 << 12, 1, AccessType::Load, PrivilegeMode::User);
+        assert!(matches!(res1, TlbResult::Miss));
+
+        // Check 2: Global should Hit (Case 4 Protection)
+        let res2 = mmu.tlb.lookup(0x20 << 12, 1, AccessType::Load, PrivilegeMode::Supervisor);
+        assert!(matches!(res2, TlbResult::Hit(_, _)));
+
+        // Check 3: ASID 2 should Hit
+        let res3 = mmu.tlb.lookup(0x10 << 12, 2, AccessType::Load, PrivilegeMode::User);
+        assert!(matches!(res3, TlbResult::Hit(_, _)));
+
+        // --- Refill Entry 1 for next test ---
+        mmu.tlb.fill(0x10 << 12, Sv32Pte::from(pte_a), 1, false);
+
+        mmu.flush_tlb(0, 1); // vaddr=0 triggers ASID flush
+
+        let res1 = mmu.tlb.lookup(0x10 << 12, 1, AccessType::Load, PrivilegeMode::User);
+        assert!(matches!(res1, TlbResult::Miss));
+
+        let res2 = mmu.tlb.lookup(0x20 << 12, 1, AccessType::Load, PrivilegeMode::Supervisor);
+        assert!(matches!(res2, TlbResult::Hit(_, _)));
+
+        mmu.tlb.fill(0x10 << 12, Sv32Pte::from(pte_a), 1, false); // Refill A
+        mmu.flush_tlb(0x10 << 12, 0); // asid=0 triggers VAddr flush
+
+        let res1 = mmu.tlb.lookup(0x10 << 12, 1, AccessType::Load, PrivilegeMode::User);
+        assert!(matches!(res1, TlbResult::Miss));
+        let res3 = mmu.tlb.lookup(0x10 << 12, 2, AccessType::Load, PrivilegeMode::User);
+        assert!(matches!(res3, TlbResult::Miss));
+
+
+        // Flush All
+        mmu.tlb.fill(0x10 << 12, Sv32Pte::from(pte_a), 1, false);
+        mmu.flush_tlb(0, 0);
+
+        let res2 = mmu.tlb.lookup(0x20 << 12, 1, AccessType::Load, PrivilegeMode::Supervisor);
+        assert!(matches!(res2, TlbResult::Miss));
     }
 }

@@ -85,6 +85,58 @@ impl Tlb {
     fn get_set_idx(vpn: u32) -> usize {
         vpn as usize & (TLB_SET_NUM - 1)
     }
+
+    pub fn flush(&mut self, vpn: u32, asid: u16) {
+        match (vpn, asid) {
+            (0, 0) => self.flush_all(),
+            (0, a) => self.flush_by_asid(a),
+            (v, 0) => self.flush_by_address(v),
+            (v, a) => self.flush_by_both(v, a),
+        }
+    }
+
+    fn flush_all(&mut self) {
+        self.sets.iter_mut().for_each(|set| set.flush());
+    }
+
+    fn flush_by_asid(&mut self, asid: u16) {
+        self.sets.iter_mut().for_each(|set| {
+            set.entries.iter_mut().for_each(|entry| {
+                if entry.asid() == asid 
+                    && entry.is_valid() 
+                    && !entry.is_global() {
+                    entry.flush();
+                }
+            })
+        });
+    }
+
+    fn flush_by_address(&mut self, vpn: u32) {
+        let set_index = Self::get_set_idx(vpn);
+        let tag = (vpn >> TLB_SET_SHIFT) as u16;
+
+        self.sets[set_index].entries.iter_mut()
+            .for_each(|entry| {
+                if entry.tag() == tag && entry.is_valid() {
+                    entry.flush();
+                }
+            }); 
+    }
+
+    fn flush_by_both(&mut self, vpn: u32, asid: u16) {
+        let set_index = Self::get_set_idx(vpn);
+        let tag = (vpn >> TLB_SET_SHIFT) as u16;
+
+        self.sets[set_index].entries.iter_mut()
+            .for_each(|entry| {
+               if   entry.tag() == tag 
+                    && entry.asid() == asid
+                    && entry.is_valid()
+                    && !entry.is_global() {
+                    entry.flush();
+                }
+            }); 
+    }
 }
 
 impl Default for TlbEntry {
