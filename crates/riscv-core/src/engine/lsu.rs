@@ -69,7 +69,7 @@ impl<'a> Lsu<'a> {
 
         #[cfg(feature = "s")]
             let pa_access = self.mmu.translate(
-                va_access, self.mode, self.csrs.check_satp(), self.bus
+                va_access, self.mode, self.csrs, self.bus
             )?;   
             
         #[cfg(feature = "zicsr")] {

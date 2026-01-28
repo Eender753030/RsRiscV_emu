@@ -105,7 +105,7 @@ impl Cpu {
         let pa_access = va_access;
 
         #[cfg(feature = "s")]
-        let pa_access = self.mmu.translate(va_access, self.mode, self.csrs.check_satp() , &mut self.bus)?;
+        let pa_access = self.mmu.translate(va_access, self.mode, &self.csrs, &mut self.bus)?;
 
         #[cfg(feature = "zicsr")]
         self.csrs.pmp_check(pa_access, 4, self.mode).map_err(|e| match e {
