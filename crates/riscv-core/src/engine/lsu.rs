@@ -63,10 +63,7 @@ impl<'a> Lsu<'a> {
     }
 
     #[allow(unused_variables)]
-    fn pre_work(&mut self, va_access: Access<Virtual>, num: usize) -> Result<Access<Physical>> {
-        #[cfg(not(feature = "zicsr"))] 
-        return  Ok(va_access.bypass());
-    
+    fn pre_work(&mut self, va_access: Access<Virtual>, num: usize) -> Result<Access<Physical>> { 
         #[cfg(not(feature = "s"))]
         let pa_access = va_access.bypass();
 

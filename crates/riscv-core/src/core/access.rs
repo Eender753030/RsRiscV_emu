@@ -37,6 +37,7 @@ impl<T> Access<T> {
         }
     }
 
+    #[cfg(feature = "s")]
     pub fn into_page_exception(self) -> Exception {
         match self.kind {
             Load => Exception::LoadPageFault(self.addr),
@@ -47,6 +48,7 @@ impl<T> Access<T> {
 }
 
 impl Access<Virtual> {
+    #[cfg(feature = "s")]
     pub fn into_physical(self, p_addr: u32) -> Access<Physical> {
         Access { addr: p_addr, kind: self.kind, _marker: PhantomData }
     }

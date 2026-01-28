@@ -78,13 +78,15 @@ impl Cpu {
     }
  
     pub fn step(&mut self) -> StdResult<Option<Exception>, RiscVError> {      
-        Ok(if let Err(execpt) = self.cycle() { 
-            #[cfg(feature = "zicsr")]       
+        #[cfg(feature = "zicsr")]  
+        return Ok(if let Err(execpt) = self.cycle() {      
             self.trap_handle(execpt);
             Some(execpt) 
         } else {
             None
-        })
+        });
+        #[cfg(not(feature = "zicsr"))] 
+        Ok(self.cycle().err())
     }
 
     fn cycle(&mut self) -> Result<()> {

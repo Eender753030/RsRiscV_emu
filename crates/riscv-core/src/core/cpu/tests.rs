@@ -24,7 +24,7 @@ fn test_load_program_to_memory() {
     cpu.load(DRAM_BASE_ADDR, &code).expect("Load failed");
 
     let access = Access::new(DRAM_BASE_ADDR, AccessType::Load);
-    let val = cpu.bus.read_u32(access.into_physical(DRAM_BASE_ADDR)).expect("Bus read failed");
+    let val = cpu.bus.read_u32(access.bypass()).expect("Bus read failed");
     
     assert_eq!(val, 0xDEADBEEF, "Memory content mismatch");
 }
