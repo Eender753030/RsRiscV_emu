@@ -3,7 +3,7 @@
 mod page;
 
 use crate::Exception;
-use crate::core::{Access, Physical};
+use crate::core::access::{Access, Physical};
 use super::Device;
 
 use page::Page;
@@ -156,7 +156,7 @@ impl std::fmt::Debug for Memory {
 #[cfg(test)]
 mod tests {
     use crate::Exception;
-    use crate::core::{Access, AccessType};
+    use crate::core::access::{Access, AccessType};
     use crate::device::Device;
     use crate::device::memory::{Memory, _2GB};
     use crate::device::memory::page::PAGE_SIZE;

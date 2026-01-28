@@ -1,6 +1,7 @@
 use modular_bitfield::prelude::*;
 
-use crate::core::{Access, AccessType, Physical, PrivilegeMode};
+use crate::core::access::{Access, AccessType, Physical};
+use crate::core::PrivilegeMode;
 
 use MatchingMode::*;
 

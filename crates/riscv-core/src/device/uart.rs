@@ -1,6 +1,6 @@
 use std::io::{self, Write};
 
-use crate::core::{Access, Physical};
+use crate::core::access::{Access, Physical};
 use crate::device::Device;
 use crate::Exception;
 

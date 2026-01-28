@@ -5,7 +5,8 @@ mod set;
 
 use std::ops::IndexMut;
 
-use crate::core::{AccessType, PrivilegeMode}; 
+use crate::core::PrivilegeMode; 
+use crate::core::access::AccessType;
 use crate::core::mmu::sv32::Sv32Pte;
 
 use entry::TlbEntry;

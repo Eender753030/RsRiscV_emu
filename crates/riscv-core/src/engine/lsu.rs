@@ -1,6 +1,7 @@
-use crate::core::{Access, AccessType, CsrFile, PrivilegeMode};
-use crate::core::{Mmu, Physical, Virtual};
+use crate::core::{CsrFile, PrivilegeMode};
+use crate::core::Mmu;
 use crate::exception::Exception;
+use crate::core::access::{Access, AccessType, Physical, Virtual};
 use crate::device::bus::SystemBus;
 
 #[derive(Debug, PartialEq, Eq)]

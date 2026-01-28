@@ -2,7 +2,7 @@ pub mod bus;
 pub mod memory;
 pub mod uart;
 
-use crate::core::{Access, Physical};
+use crate::core::access::{Access, Physical};
 use crate::Exception;
 
 pub trait Device {

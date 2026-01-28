@@ -1,4 +1,4 @@
-use crate::core::{Access, Physical};
+use crate::core::access::{Access, Physical};
 use crate::exception::Exception;
 use super::Device;
 use super::memory::{Memory, PAGE_SIZE};
