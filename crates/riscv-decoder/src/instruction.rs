@@ -44,7 +44,7 @@ pub enum Instruction {
     #[cfg(feature = "a")]
     A(AOp, AmoInsData),
     #[cfg(feature = "zicsr")]
-    Zicsr(ZicsrOp, InstructionData),
+    Zicsr(ZicsrOp, InstructionData, u32),
     #[cfg(feature = "zifencei")]
     Zifencei(ZifenceiOp, InstructionData), 
 }

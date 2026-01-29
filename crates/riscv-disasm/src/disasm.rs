@@ -24,7 +24,7 @@ pub fn disassembler(info: &LoadInfo) -> Vec<String> {
 
                 let body = decode(raw)
                     .map(|ins| ins_to_string(ins, curr_addr, sym_table))
-                    .unwrap_or_else(|_| "(Unknown)".to_string());
+                    .unwrap_or_else(|_| format!("(Unknown) {:010x}", raw));
                 
                 lines.push(format!("    {:#010x}: {}", curr_addr, body));
                 

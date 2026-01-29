@@ -140,7 +140,7 @@ impl Cpu {
             #[cfg(feature = "a")]
             Instruction::A(op, data) => self.execute_a(op, data)?,
             #[cfg(feature = "zicsr")]
-            Instruction::Zicsr(op, data) => self.execute_zicsr(op, data)?,
+            Instruction::Zicsr(op, data, raw) => self.execute_zicsr(op, data, raw)?,
             #[cfg(feature = "zifencei")]
             Instruction::Zifencei(_, _)  => {},          
         }

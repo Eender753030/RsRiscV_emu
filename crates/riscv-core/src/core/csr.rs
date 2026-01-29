@@ -44,11 +44,11 @@ const MODE_MASK: u16 = 3 << 8;
 // const INTERRUPT_MASK: u32 = 1 << 31;
 
 impl CsrFile {
-    pub fn read(&mut self, addr: u16, mode: PrivilegeMode) -> Result<u32> {    
+    pub fn read(&mut self, addr: u16, mode: PrivilegeMode, raw: u32) -> Result<u32> {    
         if (mode as u16) < ((addr & MODE_MASK) >> 8) {
-            Err(Exception::IllegalInstruction(addr as u32))
+            Err(Exception::IllegalInstruction(raw))
         } else {
-            Ok(match CsrAddr::try_from(addr)? {
+            Ok(match CsrAddr::get_csr(addr, raw)? {
                 CsrAddr::Ustatus => 0,
 
                 #[cfg(feature = "s")] CsrAddr::Sstatus => self.mstatus.read_s(),
@@ -85,11 +85,11 @@ impl CsrFile {
         }
     }
 
-    pub fn write(&mut self, addr: u16, data: u32, mode: PrivilegeMode) -> Result<()> {
+    pub fn write(&mut self, addr: u16, data: u32, mode: PrivilegeMode, raw: u32) -> Result<()> {
         if (mode as u16) < ((addr & MODE_MASK) >> 8) {
             Err(Exception::IllegalInstruction(addr as u32))
         } else {
-            match CsrAddr::try_from(addr)? {
+            match CsrAddr::get_csr(addr, raw)? {
                 CsrAddr::Ustatus => {},
 
                 #[cfg(feature = "s")] CsrAddr::Sstatus => self.mstatus.write_s(data),
@@ -121,7 +121,7 @@ impl CsrFile {
                 CsrAddr::Pmpaddr(num) => self.pmpaddr[num] = data, 
 
                 CsrAddr::Mnstatus => {},
-                CsrAddr::Mhartid  => return Err(Exception::IllegalInstruction(addr as u32)),
+                CsrAddr::Mhartid  => return Err(Exception::IllegalInstruction(raw)),
             };
             Ok(())
         }

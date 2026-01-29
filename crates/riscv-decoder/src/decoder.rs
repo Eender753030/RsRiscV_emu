@@ -132,7 +132,7 @@ pub fn decode(raw: u32) -> Result<Instruction, DecodeError> {
             
             #[cfg(feature = "zicsr")]
             if let Some(op) = ZicsrOp::decode(funct3) {
-                let res = Zicsr(op, InstructionData { rd, rs1, rs2, imm });
+                let res = Zicsr(op, InstructionData { rd, rs1, rs2, imm }, raw);
                 return Ok(res);
             } 
             

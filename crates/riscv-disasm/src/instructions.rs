@@ -73,7 +73,7 @@ pub fn ins_to_string(ins: Instruction, addr: u32, sym_table: &HashMap<u32, Strin
             }
         }
         #[cfg(feature = "zicsr")]
-        Zicsr(op, data) => {
+        Zicsr(op, data, _) => {
             let csr_str = CsrAddr::try_from(data.imm as u32 & 0xfff)
                 .map(|addr| addr.to_string())
                 .unwrap_or_else(|addr| format!("{:#x}",addr));

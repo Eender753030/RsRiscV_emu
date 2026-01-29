@@ -1,4 +1,4 @@
-use crate::Exception;
+use crate::{Exception, Result};
 
 use CsrAddr::*;
 
@@ -38,10 +38,9 @@ pub enum CsrAddr {
     Mhartid,
 }
 
-impl TryFrom<u16> for CsrAddr {
-    type Error = Exception;
-    fn try_from(value: u16) -> Result<Self, Self::Error> {
-        Ok(match value {
+impl CsrAddr {
+    pub fn get_csr(addr: u16, raw: u32) -> Result<Self> {
+        Ok(match addr {
             0x000 => Ustatus,
 
             #[cfg(feature = "s")] 0x100 => Sstatus,
@@ -70,7 +69,7 @@ impl TryFrom<u16> for CsrAddr {
             0x744 => Mnstatus,
             0xf14 => Mhartid, 
 
-            _     => return Err(Exception::IllegalInstruction(value as u32)),
+            _     => return Err(Exception::IllegalInstruction(raw)),
         })
     }
 }

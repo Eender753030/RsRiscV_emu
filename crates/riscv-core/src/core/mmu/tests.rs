@@ -47,7 +47,7 @@ fn test_bypass_mode() {
     let va = 0x8000_5555;
     let access = Access::new(va, AccessType::Load);
 
-    csrs.write(0x180, 0x80001, PrivilegeMode::Machine).unwrap();
+    csrs.write(0x180, 0x80001, PrivilegeMode::Machine, 0).unwrap();
     let res = mmu.translate(access, PrivilegeMode::Machine, &csrs, &mut bus);
     assert!(res.is_ok());
     assert_eq!(res.unwrap().addr, va, "M-Mode should bypass MMU");
@@ -85,7 +85,7 @@ fn test_sv32_4k_page_translation_and_accessed_bit() {
     write_pte(&mut bus, leaf_pte_addr, leaf_pte_val);
 
     let access = Access::new(va, AccessType::Load);
-    csrs.write(0x180, root_ppn | (1 << 31), PrivilegeMode::Machine).unwrap();
+    csrs.write(0x180, root_ppn | (1 << 31), PrivilegeMode::Machine, 0).unwrap();
     let res = mmu.translate(access, PrivilegeMode::Supervisor, &csrs, &mut bus);
 
     assert!(res.is_ok(), "Translation failed: {:?}", res.err());
@@ -113,7 +113,7 @@ fn test_sv32_megapage_translation() {
     write_pte(&mut bus, root_pte_addr, root_pte_val);
 
     let access = Access::new(va, AccessType::Store);
-    csrs.write(0x180, root_ppn | (1 << 31), PrivilegeMode::Machine).unwrap();
+    csrs.write(0x180, root_ppn | (1 << 31), PrivilegeMode::Machine, 0).unwrap();
     let res = mmu.translate(access, PrivilegeMode::Supervisor, &csrs, &mut bus);
 
     assert!(res.is_ok());
@@ -143,7 +143,7 @@ fn test_page_fault_read_only() {
     write_pte(&mut bus, root_pte_addr, pte_val);
 
     let load_access = Access::new(va, AccessType::Load);
-    csrs.write(0x180, root_ppn | (1 << 31), PrivilegeMode::Machine).unwrap();
+    csrs.write(0x180, root_ppn | (1 << 31), PrivilegeMode::Machine, 0).unwrap();
     assert!(mmu.translate(load_access, PrivilegeMode::Supervisor, &csrs, &mut bus).is_ok());
 
     let store_access = Access::new(va, AccessType::Store);
@@ -170,7 +170,7 @@ fn test_page_fault_invalid() {
     bus.write_u32(access_init.into_physical(pte_addr), 0).expect("Init PT memory failed");
     
     let access = Access::new(va, AccessType::Load);
-    csrs.write(0x180, root_ppn | (1 << 31), PrivilegeMode::Machine).unwrap();
+    csrs.write(0x180, root_ppn | (1 << 31), PrivilegeMode::Machine, 0).unwrap();
     let res = mmu.translate(access, PrivilegeMode::Supervisor, &csrs, &mut bus);
 
     match res {
@@ -200,7 +200,7 @@ fn test_tlb() {
     write_pte(&mut bus, leaf_pte_addr, make_pte(target_ppn, true, true, true, false, false, false, false, false));
 
     let access = Access::new(va, AccessType::Load);
-    csrs.write(0x180, root_ppn | (1 << 31), PrivilegeMode::Machine).unwrap();
+    csrs.write(0x180, root_ppn | (1 << 31), PrivilegeMode::Machine, 0).unwrap();
     let res = mmu.translate(access, PrivilegeMode::Supervisor, &csrs, &mut bus);
     assert!(res.is_ok());
     assert_eq!(mmu.hit_count, 0, "First access should be a miss");
