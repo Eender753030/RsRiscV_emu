@@ -1,4 +1,4 @@
-#![cfg(feature = "zicsr")]
+#![cfg(all(feature = "zicsr"))]
 
 mod common;
 
