@@ -67,11 +67,9 @@ impl Cpu {
     }
 
     pub fn set_mem_zero(&mut self, addr: u32, size: usize) -> std::result::Result<(), RiscVError> {
-        for i in 0..size {
-            let access = Access::new(addr + i as u32, AccessType::Store);
-            self.bus.write_byte(access, 0)
-                .map_err(|_| RiscVError::BssInitFailed)?
-        }
+        let access = Access::new(addr, AccessType::Store); 
+    
+        self.bus.write_bytes(access, size, &vec![0; size]).map_err(|_| RiscVError::BssInitFailed)?;
         Ok(())
     }
 

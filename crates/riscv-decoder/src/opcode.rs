@@ -26,9 +26,7 @@ impl TryFrom<u8> for OpCode {
     type Error = DecodeError;
 
     fn try_from(value: u8) -> Result<Self, Self::Error> {
-        // if value & 0b11 != 0b11 {
-        //     return Ok(Compressed);
-        // }
+        
 
         Ok(match value {
             0x13 => ItypeAr,
@@ -71,7 +69,7 @@ impl std::fmt::Display for OpCode {
             UtypeAuipc  => "U-type: auipc",   
             System      => "System",  
             #[cfg(feature = "a")]
-            Amo         => "AMO"
+            Amo         => "AMO",
         };
         
         f.pad(&format!("{:#02x}({})", opcode, op_str))

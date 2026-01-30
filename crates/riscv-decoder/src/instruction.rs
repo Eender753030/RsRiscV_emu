@@ -4,6 +4,8 @@ mod rv32i;
 mod m;
 #[cfg(feature = "a")]
 mod a;
+#[cfg(feature = "c")]
+mod c;
 #[cfg(feature = "zicsr")]
 mod zicsr;
 #[cfg(feature = "zifencei")]
@@ -16,6 +18,10 @@ pub use rv32i::Rv32iOp;
 pub use m::MOp;
 #[cfg(feature = "a")]
 pub use a::AOp;
+#[cfg(feature = "c")]
+pub(crate) use c::COp;
+#[cfg(feature = "c")]
+pub(crate) use c::CFormat;
 #[cfg(feature = "zicsr")]
 pub use zicsr::ZicsrOp;
 #[cfg(feature = "zifencei")]

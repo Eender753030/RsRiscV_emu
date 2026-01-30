@@ -9,12 +9,13 @@ default = []
 
 m = []
 a = []
+c = []
 zicsr = ["zifencei"]
 zifencei = []
 
 s = ["zicsr"] # Supervisor
 
-full = ["s", "a", "m", "zicsr", "zifencei"]
+full = ["s", "a", "m", "c", "zicsr", "zifencei"]
 
 [dependencies]
 thiserror = "2"
