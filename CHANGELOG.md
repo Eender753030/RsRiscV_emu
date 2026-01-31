@@ -1,5 +1,7 @@
 # Changelog
 
+## [Unreleased]
+
 ## [0.3.0] - 2026-01-31
 ### Added
 - **C Extension**: Implemented C extension instructions and add `rv32uc-p` tests.
