@@ -1,10 +1,10 @@
 mod core;
 mod device;
 mod engine;
+mod error;
+mod exception;
 
 pub mod debug;
-pub mod error;
-pub mod exception;
 pub mod prelude;
 pub mod constance {
     pub use crate::device::memory::PAGE_SIZE;
@@ -14,3 +14,6 @@ pub mod constance {
 pub use core::RiscV;
 pub use error::RiscVError;
 pub use exception::Exception;
+
+pub type StdResult<T, E> = std::result::Result<T, E>;
+pub type Result<T> = std::result::Result<T, Exception>;

@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use riscv_decoder::instruction::Instruction::{self, *};
 
+#[cfg(feature = "zicsr")]
 use crate::csr_addr::CsrAddr;
 
 pub fn ins_to_string(ins: Instruction, addr: u32, sym_table: &HashMap<u32, String>) -> String {   
@@ -43,19 +44,43 @@ pub fn ins_to_string(ins: Instruction, addr: u32, sym_table: &HashMap<u32, Strin
                 format!("{:<7} x{}, x{}, x{}", op, data.rd, data.rs1, data.rs2)
             }
         },
-        Privileged(op) => {
+        #[cfg(feature = "zicsr")]
+        #[allow(unused)]
+        Privileged(op, data) => {
+            #[cfg(feature = "s")]
+            if op.is_fence() {
+                return format!("{:<12} x{}, x{}", op, data.rs1, data.rs2);
+            }  
             format!("{:<7}", op)
         }
+        #[cfg(feature = "m")]
         M(op, data) => {
             format!("{:<7} x{}, x{}, x{}", op, data.rd, data.rs1, data.rs2)
         },
-        Ziscr(op, data) => {
+        #[cfg(feature = "a")]
+        A(op, data) => {
+            let op_with_suffix = match(data.aq, data.rl) {
+                (1, 0) => format!("{}{}", op, ".aq"),
+                (0, 1) => format!("{}{}", op, ".rl"),
+                (1, 1) => format!("{}{}", op, ".aqrl"),
+                (_, _) => format!("{}{}", op, ""),
+            };
+
+            if op.is_load() {
+                format!("{:<14} x{}, (x{})", op_with_suffix, data.rd, data.rs1)
+            } else {
+                format!("{:<14} x{}, x{}, (x{})", op_with_suffix, data.rd, data.rs2, data.rs1)
+            }
+        }
+        #[cfg(feature = "zicsr")]
+        Zicsr(op, data, _) => {
             let csr_str = CsrAddr::try_from(data.imm as u32 & 0xfff)
                 .map(|addr| addr.to_string())
                 .unwrap_or_else(|addr| format!("{:#x}",addr));
 
             format!("{:<7} x{}, {}, x{}", op, data.rd, csr_str, data.rs1)       
         },
+        #[cfg(feature = "zifencei")]
         Zifencei(op, _)=> {
             format!("{:<7}", op)
         },

@@ -7,4 +7,8 @@ pub enum RiscVError {
 
     #[error("Can not set zero in memory")]
     BssInitFailed,
+
+    #[cfg(not(feature = "zicsr"))]
+    #[error("Exception had raised")]
+    Exception,
 }

@@ -2,8 +2,8 @@
 
 mod page;
 
-use crate::Exception;
-use crate::core::{Access, Physical};
+use crate::Result;
+use crate::core::access::{Access, Physical};
 use super::Device;
 
 use page::Page;
@@ -28,7 +28,7 @@ impl Memory {
 
     /// Reset `Memory`'s `space` by fill 0
     pub fn reset(&mut self) {
-        self.pages.fill(None);
+        self.pages.iter_mut().flatten().for_each(|p| p.fill(0));
     }
 
     fn translate(&self, addr: usize) -> Option<&Page> {
@@ -54,28 +54,28 @@ impl Default for Memory {
 }
 
 impl Device for Memory {
-    fn read_byte(&self, access: Access<Physical>) -> Result<u8, Exception> {
+    fn read_byte(&self, access: Access<Physical>) -> Result<u8> {
         let addr = access.addr as usize;
 
         if let Some(page) = self.translate(addr) {
             Ok(page[addr % PAGE_SIZE])
         } else {
-            Err(access.to_access_exception())
+            Err(access.into_access_exception())
         }
     }
 
-    fn write_byte(&mut self, access: Access<Physical>, data: u8) -> Result<(), Exception> {
+    fn write_byte(&mut self, access: Access<Physical>, data: u8) -> Result<()> {
         let addr = access.addr as usize;
 
         if let Some(page) = self.translate_mut(addr) {
             page[addr % PAGE_SIZE] = data;
             Ok(())
         } else {
-            Err(access.to_access_exception())
+            Err(access.into_access_exception())
         }   
     }
 
-    fn read_bytes(&self, mut access: Access<Physical>, size: usize, des: &mut [u8]) -> Result<(), Exception> {
+    fn read_bytes(&self, mut access: Access<Physical>, size: usize, des: &mut [u8]) -> Result<()> {
         let mut start = 0;
 
         while start < size {
@@ -86,10 +86,8 @@ impl Device for Memory {
 
             let page = self.translate(addr);
             match page {
-                None => 
-                    return Err(access.to_access_exception()),
-                Some(p) => 
-                    des[start..start + len].copy_from_slice(&p[p_start..p_start + len]),
+                None    => return Err(access.into_access_exception()),
+                Some(p) => des[start..start + len].copy_from_slice(&p[p_start..p_start + len]),
             }
 
             start += len;
@@ -98,7 +96,7 @@ impl Device for Memory {
         Ok(())
     }
 
-    fn write_bytes(&mut self, mut access: Access<Physical>, size: usize, src: &[u8]) -> Result<(), Exception> {
+    fn write_bytes(&mut self, mut access: Access<Physical>, size: usize, src: &[u8]) -> Result<()> {
         let mut start = 0;
 
         while start < size {
@@ -110,7 +108,7 @@ impl Device for Memory {
             let page = self.translate_mut(addr);
             match page {
                 None => 
-                    return Err(access.to_access_exception()),
+                    return Err(access.into_access_exception()),
                 Some(p) => 
                     p[p_start..p_start + len].copy_from_slice(&src[start..start + len]),
             }
@@ -158,7 +156,7 @@ impl std::fmt::Debug for Memory {
 #[cfg(test)]
 mod tests {
     use crate::Exception;
-    use crate::core::{Access, AccessType};
+    use crate::core::access::{Access, AccessType};
     use crate::device::Device;
     use crate::device::memory::{Memory, _2GB};
     use crate::device::memory::page::PAGE_SIZE;

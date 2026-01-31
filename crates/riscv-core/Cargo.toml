@@ -4,12 +4,23 @@ version.workspace = true
 authors.workspace = true
 edition.workspace = true
 
+[features]
+default = []
+
+m = ["riscv-decoder/m"]
+a = ["riscv-decoder/a"]
+c = ["riscv-decoder/c"]
+zicsr = ["riscv-decoder/zicsr", "zifencei"]
+zifencei = ["riscv-decoder/zifencei"]
+
+s = ["zicsr", "riscv-decoder/s"] # Supervisor
+
+full = ["s", "m", "a", "c", "zicsr", "zifencei"]
+
 [dependencies]
 riscv-decoder = {workspace = true}
+riscv-loader = {workspace = true}
 
 modular-bitfield = "0.13"
 
 thiserror = "2"
-
-[dev-dependencies]
-riscv-loader = {workspace = true}

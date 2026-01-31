@@ -1,3 +1,4 @@
+#[cfg(feature = "zicsr")]
 mod csr_addr;
 mod instructions;
 

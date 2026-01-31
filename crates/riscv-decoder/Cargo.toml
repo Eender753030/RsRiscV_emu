@@ -4,5 +4,18 @@ version.workspace = true
 authors.workspace = true
 edition.workspace = true
 
+[features]
+default = []
+
+m = []
+a = []
+c = []
+zicsr = ["zifencei"]
+zifencei = []
+
+s = ["zicsr"] # Supervisor
+
+full = ["s", "a", "m", "c", "zicsr", "zifencei"]
+
 [dependencies]
 thiserror = "2"

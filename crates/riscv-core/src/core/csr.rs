@@ -1,24 +1,33 @@
-mod mstatus;
-mod satp;
 mod addr;
+mod mstatus;
+mod pmpcfg;
+#[cfg(feature = "s")]
+mod satp;
 
-use crate::{core::privilege::PrivilegeMode, exception::Exception};
-use mstatus::Mstatus;
-use satp::Satp;
+use crate::{Exception, Result};
+use crate::core::access::{Access, Physical};
+use crate::core::privilege::PrivilegeMode;
+
 use addr::CsrAddr;
+use mstatus::Mstatus;
+use pmpcfg::Pmpcfg;
+#[cfg(feature = "s")]
+use satp::Satp;
+
+pub(super) const PMPCFG_NUM: usize = 4;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct CsrFile {
-    stvec: u32,
-    sepc: u32,
-    scause: u32,
-    sscratch: u32,
-    stval: u32,
-    satp: Satp,
+    #[cfg(feature = "s")] stvec: u32,
+    #[cfg(feature = "s")] sepc: u32,
+    #[cfg(feature = "s")] scause: u32,
+    #[cfg(feature = "s")] sscratch: u32,
+    #[cfg(feature = "s")] stval: u32,
+    #[cfg(feature = "s")] satp: Satp,
 
     mstatus: Mstatus,
-    medeleg: u32,
-    mideleg: u32,
+    #[cfg(feature = "s")] medeleg: u32,
+    #[cfg(feature = "s")] mideleg: u32,
     mie: u32,
     mtvec: u32,
     mscratch: u32,
@@ -26,32 +35,39 @@ pub struct CsrFile {
     mcause: u32,
     mtval: u32,
     mip: u32,
+
+    pmpcfg: [Pmpcfg; PMPCFG_NUM],
+    pmpaddr: [u32; PMPCFG_NUM * 4],
 }
 
 const MODE_MASK: u16 = 3 << 8;
 // const INTERRUPT_MASK: u32 = 1 << 31;
 
 impl CsrFile {
-    pub fn read(&mut self, addr: u16, mode: PrivilegeMode) -> Result<u32, Exception> {    
+    pub fn read(&mut self, addr: u16, mode: PrivilegeMode, raw: u32) -> Result<u32> {    
         if (mode as u16) < ((addr & MODE_MASK) >> 8) {
-            Err(Exception::IllegalInstruction(addr as u32))
+            Err(Exception::IllegalInstruction(raw))
         } else {
-            Ok(match CsrAddr::try_from(addr)? {
+            Ok(match CsrAddr::get_csr(addr, raw)? {
                 CsrAddr::Ustatus => 0,
 
-                CsrAddr::Sstatus => self.mstatus.read_s(),
-                CsrAddr::Sie => self.mie & self.mideleg,
-                CsrAddr::Stvec => self.stvec,
-                CsrAddr::Sscratch => self.sscratch,
-                CsrAddr::Sepc => self.sepc,
-                CsrAddr::Scause => self.scause,
-                CsrAddr::Stval => self.stval,
-                CsrAddr::Sip => self.mip & self.mideleg,
-                CsrAddr::Satp => self.satp.into(),
-
+                #[cfg(feature = "s")] CsrAddr::Sstatus => self.mstatus.read_s(),
+                #[cfg(feature = "s")] CsrAddr::Sie => self.mie & self.mideleg,
+                #[cfg(feature = "s")] CsrAddr::Stvec => self.stvec,
+                #[cfg(feature = "s")] CsrAddr::Sscratch => self.sscratch,
+                #[cfg(feature = "s")] CsrAddr::Sepc => self.sepc,
+                #[cfg(feature = "s")] CsrAddr::Scause => self.scause,
+                #[cfg(feature = "s")] CsrAddr::Stval => self.stval,
+                #[cfg(feature = "s")] CsrAddr::Sip => self.mip & self.mideleg,
+                #[cfg(feature = "s")] CsrAddr::Satp => {
+                    if mode == PrivilegeMode::Supervisor && self.check_tvm() {
+                        return Err(Exception::IllegalInstruction(addr as u32));
+                    }
+                    self.satp.into()
+                }
                 CsrAddr::Mstatus => self.mstatus.read_m(),
-                CsrAddr::Medeleg => self.medeleg,
-                CsrAddr::Mideleg => self.mideleg,
+                #[cfg(feature = "s")] CsrAddr::Medeleg => self.medeleg,
+                #[cfg(feature = "s")] CsrAddr::Mideleg => self.mideleg,
                 CsrAddr::Mie => self.mie,
                 CsrAddr::Mtvec => self.mtvec,
                 CsrAddr::Mscratch => self.mscratch,
@@ -59,33 +75,40 @@ impl CsrFile {
                 CsrAddr::Mcause => self.mcause,
                 CsrAddr::Mtval => self.mtval,
                 CsrAddr::Mip => self.mip,
-                CsrAddr::Pmpcfg0 => 0,
-                CsrAddr::Pmpaddr0 => 0,
-                CsrAddr::Mhartid => 0,
+
+                CsrAddr::Pmpcfg(num) => self.pmpcfg[num].into(),
+                CsrAddr::Pmpaddr(num) => self.pmpaddr[num],
+
+                CsrAddr::Mnstatus => 0,
+                CsrAddr::Mhartid  => 0,
             })
         }
     }
 
-    pub fn write(&mut self, addr: u16, data: u32, mode: PrivilegeMode) -> Result<(), Exception> {
+    pub fn write(&mut self, addr: u16, data: u32, mode: PrivilegeMode, raw: u32) -> Result<()> {
         if (mode as u16) < ((addr & MODE_MASK) >> 8) {
             Err(Exception::IllegalInstruction(addr as u32))
         } else {
-            match CsrAddr::try_from(addr)? {
+            match CsrAddr::get_csr(addr, raw)? {
                 CsrAddr::Ustatus => {},
 
-                CsrAddr::Sstatus => self.mstatus.write_s(data),
-                CsrAddr::Sie => self.mie = (self.mie & !self.mideleg) | (data & self.mideleg),
-                CsrAddr::Stvec => self.stvec = data,
-                CsrAddr::Sscratch => self.sscratch = data,
-                CsrAddr::Sepc => self.sepc = data,
-                CsrAddr::Scause => self.scause = data,
-                CsrAddr::Stval => self.stval = data,
-                CsrAddr::Sip => self.mip = (self.mip & !self.mideleg) | (data & self.mideleg),
-                CsrAddr::Satp => self.satp = data.into(),
-
+                #[cfg(feature = "s")] CsrAddr::Sstatus => self.mstatus.write_s(data),
+                #[cfg(feature = "s")] CsrAddr::Sie => self.mie = (self.mie & !self.mideleg) | (data & self.mideleg),
+                #[cfg(feature = "s")] CsrAddr::Stvec => self.stvec = data,
+                #[cfg(feature = "s")] CsrAddr::Sscratch => self.sscratch = data,
+                #[cfg(feature = "s")] CsrAddr::Sepc => self.sepc = data,
+                #[cfg(feature = "s")] CsrAddr::Scause => self.scause = data,
+                #[cfg(feature = "s")] CsrAddr::Stval => self.stval = data,
+                #[cfg(feature = "s")] CsrAddr::Sip => self.mip = (self.mip & !self.mideleg) | (data & self.mideleg),
+                #[cfg(feature = "s")] CsrAddr::Satp => {
+                    if mode == PrivilegeMode::Supervisor && self.check_tvm() {
+                        return Err(Exception::IllegalInstruction(addr as u32));
+                    }
+                    self.satp = data.into()
+                }
                 CsrAddr::Mstatus => self.mstatus.write_m(data),
-                CsrAddr::Medeleg => self.medeleg = data,
-                CsrAddr::Mideleg => self.mideleg = data,
+                #[cfg(feature = "s")] CsrAddr::Medeleg => self.medeleg = data,
+                #[cfg(feature = "s")] CsrAddr::Mideleg => self.mideleg = data,
                 CsrAddr::Mie => self.mie = data,
                 CsrAddr::Mtvec => self.mtvec = data,
                 CsrAddr::Mscratch => self.mscratch = data,
@@ -93,9 +116,12 @@ impl CsrFile {
                 CsrAddr::Mcause => self.mcause = data,
                 CsrAddr::Mtval => self.mtval = data,
                 CsrAddr::Mip => self.mip = data,
-                CsrAddr::Pmpcfg0 => {},
-                CsrAddr::Pmpaddr0 => {}, 
-                CsrAddr::Mhartid => return Err(Exception::IllegalInstruction(addr as u32)),
+
+                CsrAddr::Pmpcfg(num) => self.pmpcfg[num] = data.into(),
+                CsrAddr::Pmpaddr(num) => self.pmpaddr[num] = data, 
+
+                CsrAddr::Mnstatus => {},
+                CsrAddr::Mhartid  => return Err(Exception::IllegalInstruction(raw)),
             };
             Ok(())
         }
@@ -104,6 +130,7 @@ impl CsrFile {
     pub fn trap_entry(&mut self, curr_pc: u32, except_code: Exception, mode: PrivilegeMode) -> (PrivilegeMode, u32) {
         let target_mode = match mode {
             PrivilegeMode::Machine => PrivilegeMode::Machine,
+            #[cfg(feature = "s")]
             PrivilegeMode::Supervisor | PrivilegeMode::User => {
                 if self.medeleg & (1 << (u32::from(except_code))) > 0 {
                     PrivilegeMode::Supervisor
@@ -111,18 +138,20 @@ impl CsrFile {
                     PrivilegeMode::Machine
                 }
             }
+            #[cfg(not(feature = "s"))]
+            PrivilegeMode::User => PrivilegeMode::Machine
         };
 
         let tval = match except_code {
             Exception::IllegalInstruction(raw) => raw,
             Exception::LoadAccessFault(addr) |
-            Exception::StoreAccessFault(addr) |
+            Exception::StoreOrAmoAccessFault(addr) |
             Exception::InstructionAccessFault(addr) | 
             Exception::LoadPageFault(addr) |
             Exception::StoreOrAmoPageFault(addr) |
             Exception::InstructionPageFault(addr)
-            => addr,
-            _ => 0
+                => addr,
+            _   => 0,
         };
    
         match target_mode {
@@ -141,6 +170,7 @@ impl CsrFile {
                     base_addr
                 })
             },
+            #[cfg(feature = "s")]
             PrivilegeMode::Supervisor => {
                 self.sepc = curr_pc;
                 self.scause = except_code.into();
@@ -170,7 +200,12 @@ impl CsrFile {
         (mode, self.mepc)
     } 
 
-    pub fn trap_sret(&mut self) -> (PrivilegeMode, u32) {
+    #[cfg(feature = "s")]
+    pub fn trap_sret(&mut self, curr_mode: PrivilegeMode) -> Result<(PrivilegeMode, u32)> {
+        if self.mstatus.tsr() > 0 && curr_mode == PrivilegeMode::Supervisor {
+            return Err(Exception::IllegalInstruction(0x10200073));
+        };
+
         let mode = match self.mstatus.spp() {
             0b0 => PrivilegeMode::User,
             _ => PrivilegeMode::Supervisor,
@@ -180,153 +215,131 @@ impl CsrFile {
         self.mstatus.set_spie(1);
         self.mstatus.set_spp(0);
 
-        (mode, self.sepc)
+        Ok((mode, self.sepc))
     } 
+
+    #[cfg(feature = "s")]
+    pub fn check_satp(&self, mode: PrivilegeMode) -> Result<Option<(u16, u32)>> {
+        if mode == PrivilegeMode::Supervisor && self.check_tvm() {
+            return Err(Exception::IllegalInstruction(0x180));
+        }
+        Ok(if self.satp.mode() > 0  {
+            Some((self.satp.asid(), self.satp.ppn()))
+        } else {
+            None
+        })
+    }
+
+    #[cfg(feature = "s")]
+    pub fn check_tvm(&self) -> bool {
+        self.mstatus.tvm() > 0
+    }
+
+    #[cfg(feature = "s")]
+    pub fn check_sum(&self) -> bool {
+        self.mstatus.sum() > 0
+    }
+
+    #[cfg(feature = "s")]
+    pub fn check_mxr(&self) -> bool {
+        self.mstatus.mxr() > 0
+    }
+
+    pub fn pmp_check(&self, access: Access<Physical>, size: usize, mode: PrivilegeMode) -> Result<()> {
+        use pmpcfg::MatchingMode::*;
+        let mut is_match = None;
+        for i in 0..PMPCFG_NUM * 4 {
+            if match self.pmpcfg[i / 4][i % 4].mode() {
+                Off   => continue,
+                Tor   => self.top_of_range(i, access.addr, size),
+                Na4   => self.na4(i, access.addr, size),
+                Napot => self.napot(i, access.addr, size),
+            } {
+                is_match = Some(i);
+                break;
+            }
+        }
+        match is_match {
+            Some(idx) => {
+                let pmpcfg = &self.pmpcfg[idx / 4][idx % 4];
+                if pmpcfg.mode_check(mode) {
+                    return Ok(());
+                }
+                if !pmpcfg.access_check(access) {
+                    return Err(access.into_access_exception());
+                }
+                Ok(())
+            },
+            None => match mode {
+                PrivilegeMode::Machine => Ok(()),
+                _                      => Err(access.into_access_exception()),
+            }
+        }
+    }
+
+    fn top_of_range(&self, idx: usize, addr: u32, size: usize) -> bool {
+        let lower = match idx.checked_sub(1) {
+            Some(i) => self.pmpaddr[i] << 2,
+            None      => 0,
+        };
+        let upper = self.pmpaddr[idx] << 2;
+
+        lower <= addr && addr + (size as u32) < upper
+    }
+
+    fn na4(&self, idx: usize, addr: u32, size: usize) -> bool {
+        let base = self.pmpaddr[idx] << 2;
+
+        base <= addr && addr + (size as u32) < base + 4
+    }
+
+    fn napot(&self, idx: usize, addr: u32, size: usize) -> bool {
+        let mask_bit = self.pmpaddr[idx].trailing_ones();
+        let chunck_size = 1 << (3 + mask_bit);
+        let base = (self.pmpaddr[idx] & !((1 << mask_bit) - 1)) << 2;
+
+        base <= addr && (addr as usize) + size < (base as usize)  + chunck_size
+    }
 
     pub fn reset(&mut self) {
         *self = Self::default()
     }
 
-    pub fn check_satp(&self) -> Option<u32> {
-        if self.satp.mode() > 0  {
-            Some(self.satp.ppn())
-        } else {
-            None
-        }
-    }
-
     pub fn inspect(&self) -> Vec<(String, u32)> {
-        vec![
+        let pmp_list = self.pmpcfg.iter().enumerate()
+            .map(|(i, cfg)| (format!("pmpcfg{}", i), (*cfg).into()))
+            .chain(self.pmpaddr.iter().enumerate()
+                .map(|(i, addr)| (format!("pmpaddr{}", i), *addr))
+            );
+
+        let mut csr_list: Vec<(String, u32)> = vec![
             ("ustatus".to_string(), 0),
             ("sstatus".to_string(), self.mstatus.read_s()),
-            ("sie".to_string(), self.mie & self.mideleg),
-            ("stvec".to_string(), self.stvec),
-            ("sscratch".to_string(), self.sscratch),
-            ("sepc".to_string(), self.sepc),
-            ("scause".to_string(), self.scause),
-            ("stval".to_string(), self.stval),
-            ("sip".to_string(), self.mip & self.mideleg),
-            ("stap".to_string(), self.satp.into()),
+            #[cfg(feature = "s")] ("sie".to_string(), self.mie & self.mideleg),
+            #[cfg(feature = "s")] ("stvec".to_string(), self.stvec),
+            #[cfg(feature = "s")] ("sscratch".to_string(), self.sscratch),
+            #[cfg(feature = "s")] ("sepc".to_string(), self.sepc),
+            #[cfg(feature = "s")] ("scause".to_string(), self.scause),
+            #[cfg(feature = "s")] ("stval".to_string(), self.stval),
+            #[cfg(feature = "s")] ("sip".to_string(), self.mip & self.mideleg),
+            #[cfg(feature = "s")] ("stap".to_string(), self.satp.into()),
             ("mstatus".to_string(), self.mstatus.read_m()),
-            ("medeleg".to_string(), self.medeleg),
-            ("mideleg".to_string(), self.mideleg),
+            #[cfg(feature = "s")] ("medeleg".to_string(), self.medeleg),
+            #[cfg(feature = "s")] ("mideleg".to_string(), self.mideleg),
             ("mie".to_string(), self.mie),
             ("mtvec".to_string(), self.mtvec),
             ("mscratch".to_string(), self.mscratch),
             ("mepc".to_string(), self.mepc),
             ("mcause".to_string(), self.mcause),
             ("mip".to_string(), self.mip),
-            ("pmpcfg0".to_string(), 0),
-            ("pmpaddr0".to_string(), 0),
-            ("mhartid".to_string(), 0),
-        ]
+        ];
+        csr_list.extend(pmp_list);
+        csr_list.extend(vec![("mnstatus".to_string(), 0),
+            ("mhartid".to_string(), 0)]);
+
+        csr_list
     }
 }
 
 #[cfg(test)]
-mod tests {
-    use crate::core::CsrFile;
-    use crate::core::privilege::PrivilegeMode;
-    use crate::exception::Exception;
-
-    #[test]
-    fn test_csr_rw_permission() {
-        let mut csr = CsrFile::default();
-        let val = 0xDEAD_BEEF;
-
-        assert!(csr.write(0x340, val, PrivilegeMode::Machine).is_ok());
-        assert_eq!(csr.read(0x340, PrivilegeMode::Machine), Ok(val));
- 
-        assert_eq!(
-            csr.read(0x340, PrivilegeMode::Supervisor),
-            Err(Exception::IllegalInstruction(0x340))
-        );
-
-        assert_eq!(
-            csr.write(0x340, 0x1234, PrivilegeMode::User),
-            Err(Exception::IllegalInstruction(0x340))
-        );
-    }
-
-    #[test]
-    fn test_mstatus_behavior() {
-        let mut csr = CsrFile::default();
-        
-        let pattern = (1 << 3) | (1 << 7); 
-        csr.write(0x300, pattern, PrivilegeMode::Machine).unwrap();
-        
-        let read_back = csr.read(0x300, PrivilegeMode::Machine).unwrap();
-        assert_eq!(read_back & pattern, pattern);
-        let sstatus = csr.read(0x100, PrivilegeMode::Supervisor).unwrap();
-        assert_eq!(sstatus, 0);
-        
-    }
-
-    #[test]
-    fn test_trap_entry() {
-        let mut csr = CsrFile::default();
-        let fault_pc = 0x8000_1000;
-        let cause = Exception::IllegalInstruction(0);
-        
-        let mstatus_init = 1 << 3;
-        csr.write(0x300, mstatus_init, PrivilegeMode::Machine).unwrap();
-        
-        let handler_base = 0x8000_0004;
-        csr.write(0x305, handler_base, PrivilegeMode::Machine).unwrap();
-
-        let (next_mode, next_pc) = csr.trap_entry(fault_pc, cause, PrivilegeMode::Machine);
-
-        assert_eq!(next_mode, PrivilegeMode::Machine);
-        
-        assert_eq!(next_pc, handler_base);
-
-        assert_eq!(csr.mepc, fault_pc);
-        assert_eq!(csr.mcause, u32::from(cause));
-
-        let mstatus_new = csr.read(0x300, PrivilegeMode::Machine).unwrap();
-        assert_eq!(mstatus_new & (1 << 3), 0);
-        assert_eq!(mstatus_new & (1 << 7), (1 << 7));
-    }
-
-    #[test]
-    fn test_trap_return_mret() {
-        let mut csr = CsrFile::default();
-        let ret_pc = 0x8000_2000;
-
-        csr.mepc = ret_pc;
-        let mstatus_trap_state = (1 << 7) | (3 << 11); 
-        csr.write(0x300, mstatus_trap_state, PrivilegeMode::Machine).unwrap();
-
-        let (ret_mode, target_pc) = csr.trap_mret();
-
-        assert_eq!(target_pc, ret_pc);
-        assert_eq!(ret_mode, PrivilegeMode::Machine);
-
-        let mstatus_after = csr.read(0x300, PrivilegeMode::Machine).unwrap();
-        assert_eq!(mstatus_after & (1 << 3), (1 << 3));
-        assert_eq!(mstatus_after & (1 << 7), (1 << 7));
-        assert_eq!(mstatus_after & (3 << 11), 0);
-    }
-
-    #[test]
-    fn test_exception_delegation() {
-        let mut csr = CsrFile::default();
-        let fault_pc = 0x8000_3000;
-        let cause = Exception::Breakpoint;
-
-        csr.write(0x302, 1 << 3, PrivilegeMode::Machine).unwrap();
-        
-        let s_handler = 0x8000_4000;
-        csr.write(0x105, s_handler, PrivilegeMode::Supervisor).unwrap();
-
-        let (next_mode, next_pc) = csr.trap_entry(fault_pc, cause, PrivilegeMode::User);
-
-        assert_eq!(next_mode, PrivilegeMode::Supervisor);
-        assert_eq!(next_pc, s_handler);
-        
-        assert_eq!(csr.sepc, fault_pc);
-        assert_eq!(csr.scause, u32::from(cause));
-
-        assert_eq!(csr.mcause, 0); 
-    }
-}
+mod tests;

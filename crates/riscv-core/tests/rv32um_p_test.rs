@@ -1,3 +1,5 @@
+#![cfg(all(feature = "m", feature = "zicsr"))]
+
 mod common;
 
 use std::path::Path;

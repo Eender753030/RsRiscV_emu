@@ -1,24 +1,29 @@
-use crate::Exception;
+use crate::{Exception, Result};
 
 use CsrAddr::*;
+
+use super::PMPCFG_NUM;
+
+const PMPCFG_END: u16 = 0x3a0 + PMPCFG_NUM as u16;
+const PMPADDR_END: u16 = 0x3b0 + (PMPCFG_NUM * 4) as u16;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CsrAddr {
     Ustatus,
 
-    Sstatus,
-    Sie,
-    Stvec,
-    Sscratch,
-    Sepc,
-    Scause,
-    Stval,
-    Sip,
-    Satp,
+    #[cfg(feature = "s")] Sstatus,
+    #[cfg(feature = "s")] Sie,
+    #[cfg(feature = "s")] Stvec,
+    #[cfg(feature = "s")] Sscratch,
+    #[cfg(feature = "s")] Sepc,
+    #[cfg(feature = "s")] Scause,
+    #[cfg(feature = "s")] Stval,
+    #[cfg(feature = "s")] Sip,
+    #[cfg(feature = "s")] Satp,
 
     Mstatus,
-    Medeleg,
-    Mideleg,
+    #[cfg(feature = "s")] Medeleg,
+    #[cfg(feature = "s")] Mideleg,
     Mie,
     Mtvec,
     Mscratch,
@@ -26,30 +31,31 @@ pub enum CsrAddr {
     Mcause,
     Mtval,
     Mip,
-    Pmpcfg0,
-    Pmpaddr0,
+    Pmpcfg(usize),
+    Pmpaddr(usize),
+
+    Mnstatus,
     Mhartid,
 }
 
-impl TryFrom<u16> for CsrAddr {
-    type Error = Exception;
-    fn try_from(value: u16) -> Result<Self, Self::Error> {
-        Ok(match value {
+impl CsrAddr {
+    pub fn get_csr(addr: u16, raw: u32) -> Result<Self> {
+        Ok(match addr {
             0x000 => Ustatus,
 
-            0x100 => Sstatus,
-            0x104 => Sie,
-            0x105 => Stvec,
-            0x140 => Sscratch,
-            0x141 => Sepc,
-            0x142 => Scause,
-            0x143 => Stval,
-            0x144 => Sip,
-            0x180 => Satp,
+            #[cfg(feature = "s")] 0x100 => Sstatus,
+            #[cfg(feature = "s")] 0x104 => Sie,
+            #[cfg(feature = "s")] 0x105 => Stvec,
+            #[cfg(feature = "s")] 0x140 => Sscratch,
+            #[cfg(feature = "s")] 0x141 => Sepc,
+            #[cfg(feature = "s")] 0x142 => Scause,
+            #[cfg(feature = "s")] 0x143 => Stval,
+            #[cfg(feature = "s")] 0x144 => Sip,
+            #[cfg(feature = "s")] 0x180 => Satp,
             
             0x300 => Mstatus,
-            0x302 => Medeleg,
-            0x303 => Mideleg,
+            #[cfg(feature = "s")] 0x302 => Medeleg,
+            #[cfg(feature = "s")] 0x303 => Mideleg,
             0x304 => Mie,
             0x305 => Mtvec,
             0x340 => Mscratch,
@@ -57,11 +63,13 @@ impl TryFrom<u16> for CsrAddr {
             0x342 => Mcause,
             0x343 => Mtval,
             0x344 => Mip,
-            0x3a0 => Pmpcfg0,
-            0x3b0 => Pmpaddr0,
+            num @ 0x3a0..=PMPCFG_END => Pmpcfg((num - 0x3a0) as usize),
+            num @ 0x3b0..=PMPADDR_END => Pmpaddr((num - 0x3b0) as usize),
+            
+            0x744 => Mnstatus,
             0xf14 => Mhartid, 
 
-            _     => return Err(Exception::IllegalInstruction(value as u32)),
+            _     => return Err(Exception::IllegalInstruction(raw)),
         })
     }
 }

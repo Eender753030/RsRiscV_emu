@@ -1,12 +1,12 @@
 use riscv_decoder::instruction::InstructionData;
 use riscv_decoder::instruction::Rv32iOp::{self, *};
 
+use crate::{Exception, Result};
 use crate::engine::{Alu, Branch, Lsu};
-use crate::exception::Exception;
 use crate::core::cpu::Cpu;
 
 impl Cpu {
-    pub(crate) fn execute_rv32i(&mut self, op: Rv32iOp, data: InstructionData) -> Result<bool, Exception> {
+    pub(crate) fn execute_rv32i(&mut self, op: Rv32iOp, data: InstructionData) -> Result<bool> {
         let rs1_data = self.regs[data.rs1];
         let rs2_data = self.regs[data.rs2];
 
@@ -38,7 +38,16 @@ impl Cpu {
         }
 
         if let Some(res) = Self::jump(op) {
-            self.regs.write(data.rd, self.pc.get() + 4);
+            #[cfg(feature = "c")]
+            let next_ins_addr = if self.is_compress {
+                2
+            } else {
+                4
+            };
+            #[cfg(not(feature = "c"))]
+            let next_ins_addr = 4;
+            
+            self.regs.write(data.rd, self.pc.get() + next_ins_addr);
             match res {
                 true  => self.pc.directed_addressing(rs1_data.wrapping_add_signed(data.imm)),
                 false => self.pc.related_addressing(data.imm),
@@ -55,7 +64,7 @@ impl Cpu {
     fn alu_imm(op: Rv32iOp, data: u32, imm: i32, pc: u32) -> Option<u32> {
         Some(match op {
             Addi  => Alu::add_signed(data, imm),
-            Slli  => Alu::shl_logic(data, data),
+            Slli  => Alu::shl_logic(data, imm as u32),
             Slti  => Alu::set_less_than(data as i32, imm),
             Sltiu => Alu::set_less_than_unsigned(data, imm as u32),
             Xori  => Alu::xor(data, imm as u32),
@@ -86,7 +95,7 @@ impl Cpu {
         })
     }
 
-    fn lsu_load(&mut self, op: Rv32iOp, src: u32, offset: i32) -> Option<Result<u32, Exception>> {
+    fn lsu_load(&mut self, op: Rv32iOp, src: u32, offset: i32) -> Option<Result<u32>> {
         let (is_signed, byte_num) = match op {
             Lb  => (true, 1),
             Lh  => (true, 2),
@@ -95,33 +104,38 @@ impl Cpu {
             Lhu => (false, 2),
             _   => return None,
         };
-        let satp_opt = self.csrs.check_satp();
-        let mode = self.mode;
-        let bus = &mut self.bus;
 
-        Some(
-            if is_signed {
-                Lsu::load_signed(bus, src, offset, byte_num, mode, satp_opt)
+        let mut lsu = Lsu::new(
+            &mut self.bus, 
+            #[cfg(feature = "s")] &mut self.mmu, 
+            #[cfg(feature = "zicsr")] &self.csrs, 
+            #[cfg(feature = "zicsr")] self.mode
+        );
+ 
+        Some(if is_signed {
+                lsu.load_signed(src, offset, byte_num)
             } else {
-                Lsu::load(bus, src, offset, byte_num, mode, satp_opt)
+                lsu.load(src, offset, byte_num)
             }
         )
     }
 
-    fn lsu_store(&mut self, op: Rv32iOp, des: u32, src: u32, offset: i32) -> Option<Result<(), Exception>> {
+    fn lsu_store(&mut self, op: Rv32iOp, des: u32, src: u32, offset: i32) -> Option<Result<()>> {
         let byte_num = match op {
             Sb => 1,
             Sh => 2,
             Sw => 4,
             _  => return None,
         };
-        let satp_opt = self.csrs.check_satp();
-        let mode = self.mode;
-        let bus = &mut self.bus;
+        let mut lsu = Lsu::new(
+            &mut self.bus,
+            #[cfg(feature = "s")] &mut self.mmu, 
+            #[cfg(feature = "zicsr")] &self.csrs, 
+            #[cfg(feature = "zicsr")] self.mode
+        );
 
-        Some(
-            Lsu::store(bus, des, src, offset, byte_num, mode, satp_opt)
-        )
+        Some(lsu.store(des, src, offset, byte_num, 
+            #[cfg(feature = "a")] &mut self.reservation))
     }
 
     fn branch(op: Rv32iOp, data1: u32, data2: u32) -> Option<bool> {
@@ -144,11 +158,21 @@ impl Cpu {
         })
     }
 
-    fn system(&self, op: Rv32iOp) -> Option<Result<(), Exception>> {
+    fn system(&self, op: Rv32iOp) -> Option<Result<()>> {
         Some(match op {
             Fence  => Ok(()),
-            Ecall  => Err(self.mode.call_exception()),
-            Ebreak => Err(Exception::Breakpoint),
+            Ecall  => {
+                #[cfg(not(feature = "zicsr"))]
+                return Some(Err(Exception::Ebreak));
+                #[cfg(feature = "zicsr")]
+                Err(self.mode.call_exception())
+            },
+            Ebreak => {
+                #[cfg(not(feature = "zicsr"))]
+                return Some(Err(Exception::Ecall));
+                #[cfg(feature = "zicsr")]
+                Err(Exception::Breakpoint)
+            }
             _ => unreachable!("Last of Rv32i op"),
         })
     }
