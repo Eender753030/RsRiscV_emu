@@ -7,32 +7,30 @@ pub enum KeyControl {
     Quit,
     GoNext,
     GoPrev,
-    GoLeft,
-    GoRight,
-    NextPage,
-    PrevPage,
+    ChangePanel,
     #[cfg(feature = "zicsr")] ChangeMid,
     ChangeMode,
     Reset,
     Step,
     RunToEnd,
+    BreakPoint,
 }
+
+use KeyCode::*;
 
 pub fn poll_key_event(keycode: KeyCode) -> Option<KeyControl> {
     Some(match keycode {
-        KeyCode::Char('q' | 'Q') => Quit,
-        KeyCode::Char('r' | 'R') => Reset,
-        KeyCode::Char('s' | 'S') => Step,
-        KeyCode::Char('p' | 'P') => RunToEnd,
+        Char('q' | 'Q') => Quit,
+        Char('r' | 'R') => Reset,
+        Char('s' | 'S') => Step,
+        Char('p' | 'P') => RunToEnd,
         #[cfg(feature = "zicsr")]
-        KeyCode::Char('c' | 'C') => ChangeMid,
-        KeyCode::Char(']')       => NextPage,
-        KeyCode::Char('[')       => PrevPage,
-        KeyCode::Up              => GoPrev,
-        KeyCode::Down            => GoNext,
-        KeyCode::Left            => GoLeft,
-        KeyCode::Right           => GoRight,
-        KeyCode::Tab             => ChangeMode,
-        _                        => return None,
+        Char('c' | 'C') => ChangeMid,
+        Char('b' | 'B') => BreakPoint,
+        Up              => GoPrev,
+        Down            => GoNext,
+        Left | Right    => ChangePanel,
+        Tab             => ChangeMode,
+        _               => return None,
     })
 }

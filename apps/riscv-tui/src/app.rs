@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::sync::mpsc::{self, Receiver};
 
 use anyhow::Result;
 
@@ -14,12 +14,13 @@ use crate::terminal::EmuTerminal;
 use crate::ui::render;
 use crate::event::key::KeyControl;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub struct EmuApp {
     machine: RiscV,
     info: LoadInfo,
     state: EmuState,
     should_quit: bool,
+    event_rx: Receiver<EmuEvent>,
 }
 
 impl EmuApp {
@@ -29,12 +30,13 @@ impl EmuApp {
 
         let ins_list = disasm::disassembler(&info);
 
-        let ins_len: usize = info.code.iter()
-            .map(|(code, _)| code.len() / 4).sum();
+        let (event_tx, event_rx) = mpsc::channel::<EmuEvent>();
 
-        let state = EmuState::new(&machine, ins_len, ins_list);
+        event::spawn_event_thread(event_tx);
 
-        Ok(EmuApp { machine, info, state, should_quit: false })
+        let state = EmuState::new(&machine, ins_list);
+
+        Ok(EmuApp { machine, info, state, should_quit: false, event_rx })
     }
 
     pub fn run(&mut self) -> Result<()> { 
@@ -44,15 +46,6 @@ impl EmuApp {
             t.draw(render::ui, &mut self.state)?;
             
             self.event()?;
-
-            if self.state.mode == EmuMode::Running {
-                #[cfg(not(feature = "zicsr"))]
-                if self.step().is_err() {
-                    self.state.mode = EmuMode::Stay 
-                }
-                #[cfg(feature = "zicsr")]
-                self.step()?;
-            }
         }
         Ok(())
     }
@@ -68,26 +61,30 @@ impl EmuApp {
     }
 
     fn event(&mut self) -> Result<()> {
-        let duration = Duration::from_millis(
-            match self.state.mode {
-                EmuMode::Running => 16,
-                _ => 100,
-            }
-        );
-
-        match event::poll_event(duration)? {
+        match self.event_rx.recv()? {
             EmuEvent::Key(key) => {
                 match self.state.mode {
                     EmuMode::Observation => self.key_observation(key),
-                    EmuMode::Stay => self.key_stay(key)?,
-                    EmuMode::Running => self.key_running(key),
+                    EmuMode::Stay        => self.key_stay(key)?,
+                    EmuMode::Running     => self.key_running(key),
                 }
             },
             EmuEvent::Resize(_, _) => {},
-            EmuEvent::None => {},
+            EmuEvent::Tick => {
+                if self.state.mode == EmuMode::Running {
+                    if self.state.breakpoint_set.contains(&self.state.ins.current_select) {
+                        self.state.mode = EmuMode::Stay 
+                    } else {
+                        #[cfg(not(feature = "zicsr"))]
+                        if self.step().is_err() {
+                            self.state.mode = EmuMode::Stay 
+                        }
+                        #[cfg(feature = "zicsr")]
+                        self.step()?;
+                    }
+                }
         }
-
-        
+        }
         Ok(())
     }
 
@@ -95,16 +92,10 @@ impl EmuApp {
         use KeyControl::*;
         match key {
             Quit => self.should_quit = true,
-            ChangeMode => {
-                self.state.running_mode_selected();
-                self.state.mode = EmuMode::Stay;
-            }
-            GoNext => self.state.next(),
-            GoPrev => self.state.prev(),
-            GoLeft => self.state.go_left(),
-            GoRight => self.state.go_right(),
-            NextPage => self.state.next_page(&self.machine),
-            PrevPage => self.state.prev_page(&self.machine),
+            ChangeMode  => self.state.mode = EmuMode::Stay,
+            GoNext      => self.state.next(),
+            GoPrev      => self.state.prev(),
+            ChangePanel => self.state.change_panel(),
             #[cfg(feature = "zicsr")]
             ChangeMid => self.state.change_mid(),
             _ => {},
@@ -134,7 +125,14 @@ impl EmuApp {
                 #[cfg(feature = "zicsr")]
                 self.step()?
             }
-            RunToEnd => self.state.mode = EmuMode::Running,
+            RunToEnd => {
+                #[cfg(not(feature = "zicsr"))]
+                if self.step().is_err() {
+                }
+                #[cfg(feature = "zicsr")]
+                self.step()?;
+                self.state.mode = EmuMode::Running;
+            }
             _ => {},
         }
         Ok(())
