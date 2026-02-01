@@ -1,5 +1,7 @@
 mod list_state;
 
+use std::collections::HashSet;
+
 use riscv_core::Exception;
 use riscv_core::debug::DebugInterface;
 
@@ -40,7 +42,7 @@ pub struct EmuState {
     pub selected: Selected,
     pub mid_selected: Mid,
 
-    machine_info: MachineInfo,
+    pub breakpoint_set: HashSet<usize>,
 }
 
 impl EmuState {
@@ -57,12 +59,13 @@ impl EmuState {
         let selected = Selected::default();
         let mid_selected = Mid::default();
         
-        
+        let breakpoint_set = HashSet::new();
 
         EmuState { 
             #[cfg(feature = "zicsr")] csr,
             ins, reg, except, pc, 
             mode, selected, mid_selected,
+            breakpoint_set
         }
     }
 
@@ -88,7 +91,7 @@ impl EmuState {
             Selected::Mid(_) => Selected::Ins,
         }
     }
-
+    
     pub fn next(&mut self) {  
         match self.selected {
             Selected::Ins => self.ins.next(self.ins.list.len()),
@@ -119,6 +122,12 @@ impl EmuState {
         };
         if matches!(self.selected, Selected::Mid(_)) {
             self.selected = Selected::Mid(self.mid_selected)
+        } 
+    }
+
+    pub fn breakpoint(&mut self) {
+        if !self.breakpoint_set.remove(&self.ins.current_select) {
+            self.breakpoint_set.insert(self.ins.current_select);
         }
     }
 }

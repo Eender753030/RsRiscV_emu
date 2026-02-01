@@ -16,16 +16,11 @@ impl Component for Instruction {
     fn render(f: &mut Frame, area: Rect, emu: &mut EmuState) {
         let items: Vec<ListItem> = emu.ins.list.iter().enumerate()
             .map(|(i, (addr, ins))| {
-            let marker = if ins.ends_with(':') {
-                offset += 1;
-                ""
-            } else if *addr == emu.pc {
-                if emu.mode != EmuMode::Observation {
-                    emu.ins.list_state.select(Some(i));
-                }
-                "PC >>"
+
+            let breakpoint = if emu.breakpoint_set.contains(&i) {
+                "•"
             } else {
-                "     "
+                " "
             };
 
             if *addr == emu.pc && emu.mode != EmuMode::Observation {

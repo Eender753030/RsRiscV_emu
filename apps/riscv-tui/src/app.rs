@@ -45,7 +45,7 @@ impl EmuApp {
         while !self.should_quit {
             t.draw(render::ui, &mut self.state)?;
             
-            self.event()?;
+            self.event()?;    
         }
         Ok(())
     }
@@ -83,7 +83,7 @@ impl EmuApp {
                         self.step()?;
                     }
                 }
-        }
+            }
         }
         Ok(())
     }
@@ -98,6 +98,7 @@ impl EmuApp {
             ChangePanel => self.state.change_panel(),
             #[cfg(feature = "zicsr")]
             ChangeMid => self.state.change_mid(),
+            BreakPoint => self.state.breakpoint(),
             _ => {},
         }
     }

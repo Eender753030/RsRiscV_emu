@@ -1,6 +1,12 @@
 # Changelog
 
 ## [Unreleased]
+### Added
+- **TUI: Breakpoint**: Implemented breakpoint feature that when running mode encounter breakpoint will stop.
+
+### Changed
+- Removed TUI's memory view and refactor the display.
+- Refactored event handle with mpsc that let new thread to send event.
 
 ## [0.3.0] - 2026-01-31
 ### Added
@@ -13,7 +19,7 @@
 - **S-Mode Tests**: Added some intergration tests from `rv32si-p`, from offical `riscv-tests` .
 
 ### Changed
-- Refactor `riscv-tui` project architecture.
+- Refactored `riscv-tui` project architecture.
 - Disasm now return `Vec<(u32, String)>` that can make TUI PC pointer work easier.
 
 ### Fixed
