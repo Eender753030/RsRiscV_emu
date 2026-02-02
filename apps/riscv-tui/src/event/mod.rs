@@ -25,7 +25,7 @@ pub fn spawn_event_thread(tx: Sender<EmuEvent>) {
     thread::spawn(move || -> Result<()> {
         let mut input_mode = InputMode::default();
         let mut emu_mode = EmuMode::default();
-        let mut time = 100;
+        let mut time = 16;
 
         loop {
             let timeout = Duration::from_millis(time);
@@ -39,7 +39,7 @@ pub fn spawn_event_thread(tx: Sender<EmuEvent>) {
                                     match key {
                                         NormalKeyControl::ChangeMode => {
                                             if emu_mode == EmuMode::Running {
-                                                time = 100;
+                                                time = 16;
                                             }
                                             emu_mode.change_mode();
                                         },
@@ -49,7 +49,7 @@ pub fn spawn_event_thread(tx: Sender<EmuEvent>) {
                                         },
                                         NormalKeyControl::RunToEnd if emu_mode == EmuMode::Running => {
                                             emu_mode.stay();
-                                            time = 100;
+                                            time = 16;
                                         },
                                         NormalKeyControl::SearchBus => {
                                             if emu_mode == EmuMode::Observation {
