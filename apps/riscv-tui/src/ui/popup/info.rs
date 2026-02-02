@@ -13,7 +13,9 @@ pub fn render_popup(f: &mut Frame, emu: &EmuState) {
         ListItem::new(format!(" Dram Base: {:#010x}", emu.mach_snap.info.dram_base)),
         ListItem::new(format!(" Dram Size: {} GB", emu.mach_snap.info.dram_size)),
         ListItem::new(format!(" Page Size: {} KB", emu.mach_snap.info.page_size)),
+        #[cfg(feature = "s")]
         ListItem::new(format!(" TLB Hit Rate: {:.2} %", emu.mach_snap.info.hit_rate * 100.0)),
+        #[cfg(feature = "s")]
         ListItem::new(format!(" Current Mode: {}", emu.mach_snap.info.curr_mode)),
         ListItem::new(format!(" Current PC: {:#010x}", emu.mach_snap.pc)),
     ];

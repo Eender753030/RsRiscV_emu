@@ -28,9 +28,14 @@ impl DebugInterface for Cpu {
         let (dram_size, dram_base, page_size) = self.bus.ram_info();
         let dram_size = dram_size / 1024 / 1024 / 1024;
         let page_size = page_size / 1024;
+        #[cfg(feature = "s")]
         let hit = self.mmu.hit_count;
+        #[cfg(feature = "s")]
         let miss = self.mmu.miss_count;
 
-        MachineInfo::new(dram_size, dram_base, page_size, hit, miss, self.mode)
+        MachineInfo::new(dram_size, dram_base, page_size, 
+            #[cfg(feature = "s")]hit, 
+            #[cfg(feature = "s")]miss, 
+            #[cfg(feature = "s")]self.mode)
     }
 }

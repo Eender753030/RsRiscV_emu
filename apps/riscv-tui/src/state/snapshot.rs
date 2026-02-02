@@ -27,7 +27,8 @@ impl MachineSnapshot {
 
         let info = mach.get_info();
 
-        MachineSnapshot { info, ins, reg, csr, pc, except }
+        MachineSnapshot { info, ins, reg, 
+            #[cfg(feature = "c")]csr, pc, except }
     }
 
     pub fn update_snapshot<D: DebugInterface>(&mut self, mach: &D) {

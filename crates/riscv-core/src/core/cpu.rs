@@ -168,6 +168,7 @@ impl Cpu {
             .map_err(|_| Exception::IllegalInstruction(bytes))
     }
 
+    #[cfg(feature = "c")]
     fn decompress(&self, c_bytes: u16) -> Result<Instruction> {
         decoder::decompress(c_bytes)
             .map_err(|_| Exception::IllegalInstruction(c_bytes as u32))
