@@ -1,10 +1,12 @@
 use riscv_core::Exception;
-use riscv_core::debug::DebugInterface;
+use riscv_core::debug::{DebugInterface, MachineInfo};
 
 use crate::state::list_state::ListStateRecord;
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq)]
 pub struct MachineSnapshot {
+    pub info: MachineInfo,
+
     pub ins: ListStateRecord<(u32, String)>,
     pub reg: ListStateRecord<u32>,
     #[cfg(feature = "zicsr")]
@@ -23,10 +25,14 @@ impl MachineSnapshot {
         let except = "".to_string();
         let pc = mach.inspect_pc();
 
-        MachineSnapshot { ins, reg, csr, pc, except }
+        let info = mach.get_info();
+
+        MachineSnapshot { info, ins, reg, csr, pc, except }
     }
 
     pub fn update_snapshot<D: DebugInterface>(&mut self, mach: &D) {
+        self.info.update(mach);
+        
         self.reg.list = mach.inspect_regs().into_iter().collect();
         #[cfg(feature = "zicsr")] {
         self.csr.list = mach.inspect_csrs();

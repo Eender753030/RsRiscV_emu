@@ -4,7 +4,7 @@ mod snapshot;
 
 use std::collections::HashSet;
 
-use riscv_core::debug::{DebugInterface, MachineInfo};
+use riscv_core::debug::DebugInterface;
 
 use snapshot::MachineSnapshot;
 
@@ -15,7 +15,6 @@ use crate::input::EmuInput;
 #[derive(Debug, PartialEq)]
 pub struct EmuState {
     pub mach_snap: MachineSnapshot,
-    pub mach_info: MachineInfo,
 
     pub mode: EmuMode,
     pub selected: Selected,
@@ -35,7 +34,6 @@ pub struct EmuState {
 impl EmuState {
     pub fn new<D: DebugInterface>(mach: &D, ins_list: Vec<(u32, String)>) -> Self {
         let mach_snap = MachineSnapshot::new(mach, ins_list);
-        let mach_info = mach.get_info();
 
         let mode = EmuMode::default();
         let selected = Selected::default();
@@ -51,7 +49,7 @@ impl EmuState {
         let breakpoint_set = HashSet::new();
 
         EmuState { 
-            mach_snap, mach_info,
+            mach_snap, 
             mode, selected, mid_selected, data_view,
             show_search_popup, show_bus_popup, show_info_popup, 
             temp_bus_view, input, breakpoint_set

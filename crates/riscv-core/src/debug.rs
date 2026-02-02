@@ -1,19 +1,33 @@
-#[derive(Debug, Clone, Copy, PartialEq)]
+use crate::core::PrivilegeMode;
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct MachineInfo {
     pub dram_size: usize,
     pub dram_base: u32,
     pub page_size: usize,
     pub hit_rate: f32,
+    pub curr_mode: String,
 }
 
 impl MachineInfo {
-    pub fn new(dram_size: usize, dram_base: u32 , page_size: usize, hit: usize, miss: usize) -> Self {
+    pub fn new(dram_size: usize, dram_base: u32 , page_size: usize, hit: usize, miss: usize, mode: PrivilegeMode) -> Self {
         let hit_rate = if hit + miss == 0 {
             f32::NAN
         } else {
             (hit as f32) / ((hit + miss) as f32)
         };
-        MachineInfo { dram_size, dram_base, page_size, hit_rate }
+
+        let curr_mode = match mode {
+            PrivilegeMode::Machine    => "Machine",
+            PrivilegeMode::Supervisor => "Surervisor",
+            PrivilegeMode::User       => "User"
+        }.to_string();
+
+        MachineInfo { dram_size, dram_base, page_size, hit_rate, curr_mode}
+    }
+
+    pub fn update<D: DebugInterface>(&mut self, mach: &D) {
+        *self = mach.get_info()
     }
 }
 

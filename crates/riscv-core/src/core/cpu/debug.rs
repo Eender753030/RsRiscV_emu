@@ -31,6 +31,6 @@ impl DebugInterface for Cpu {
         let hit = self.mmu.hit_count;
         let miss = self.mmu.miss_count;
 
-        MachineInfo::new(dram_size, dram_base, page_size, hit, miss)
+        MachineInfo::new(dram_size, dram_base, page_size, hit, miss, self.mode)
     }
 }
