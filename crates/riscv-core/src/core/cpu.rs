@@ -216,6 +216,16 @@ impl Cpu {
         #[cfg(feature = "zicsr")] {
             self.mode = PrivilegeMode::default();
             self.csrs.reset();
+
+             #[cfg(feature = "s")]
+            self.mmu.reset();
+        }
+
+        #[cfg(feature = "a")] {
+            self.reservation = None;
+        }
+        #[cfg(feature = "c")] {
+            self.is_compress = false;
         }
     }
 }

@@ -38,6 +38,9 @@ pub fn spawn_event_thread(tx: Sender<EmuEvent>) {
                                 if let Some(key) = get_normal_key(code) {
                                     match key {
                                         NormalKeyControl::ChangeMode => {
+                                            if emu_mode == EmuMode::Running {
+                                                time = 100;
+                                            }
                                             emu_mode.change_mode();
                                         },
                                         NormalKeyControl::RunToEnd if emu_mode == EmuMode::Stay => {

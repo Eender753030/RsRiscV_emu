@@ -146,6 +146,12 @@ impl Mmu {
         let vpn = v_addr >> 12; 
         self.tlb.flush(vpn, asid as u16);
     }
+
+    pub fn reset(&mut self) {
+        self.tlb.reset();
+        self.hit_count = 0;
+        self.miss_count = 0;
+    }
 }
 
 #[cfg(test)]

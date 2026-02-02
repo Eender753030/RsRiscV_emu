@@ -31,7 +31,7 @@ impl MachineSnapshot {
     }
 
     pub fn update_snapshot<D: DebugInterface>(&mut self, mach: &D) {
-        self.info.update(mach);
+        self.info = mach.get_info();
         
         self.reg.list = mach.inspect_regs().into_iter().collect();
         #[cfg(feature = "zicsr")] {

@@ -25,10 +25,6 @@ impl MachineInfo {
 
         MachineInfo { dram_size, dram_base, page_size, hit_rate, curr_mode}
     }
-
-    pub fn update<D: DebugInterface>(&mut self, mach: &D) {
-        *self = mach.get_info()
-    }
 }
 
 pub trait DebugInterface {
