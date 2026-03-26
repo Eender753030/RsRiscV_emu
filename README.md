@@ -1,8 +1,6 @@
 ![Language](https://img.shields.io/badge/language-Rust-orange.svg) ![License](https://img.shields.io/badge/license-MIT-blue.svg) ![Backend](https://img.shields.io/badge/UI-Ratatui-green.svg)
 # RsRiscV Emu: Interactive RV32IMAC Emulator in Rust
 
-(Not update for now) [RsRiscV Asm here](https://github.com/Eender753030/RsRiscV_asm)
-
 ## Key Features
 - **ISA Support**:
     - **RV32IMAC Core**: Implements Base Integer (I), Multiply/Divide (M), Atomic (A), and Compressed (C) extensions.
